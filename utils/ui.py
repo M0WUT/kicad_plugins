@@ -1,6 +1,7 @@
-import wx
 import sys
 from pathlib import Path
+
+import wx
 
 
 def _show_message(message: str, title: str, style):
@@ -15,7 +16,6 @@ def _show_message(message: str, title: str, style):
 
     if ret != wx.ID_OK:
         sys.exit(0)
-    
 
 
 def show_info(message: str, title: str):
@@ -30,16 +30,12 @@ def show_error(message: str, title: str):
     _show_message(message, title, style=wx.OK | wx.ICON_ERROR)
 
 
-def get_text_input(
-    message: str = "", title: str = "Text Input", default_value: str = ""
-) -> str:
-    dlg = wx.TextEntryDialog(
-        parent=None, message=message, value=default_value, caption=title
-    )
+def get_text_input(message: str = "", title: str = "Text Input") -> str:
+    dlg = wx.TextEntryDialog(parent=None, message=message, caption=title)
     ret = dlg.ShowModal()
     result = dlg.GetValue()
     dlg.Destroy()
-    if  ret != wx.ID_OK:
+    if ret != wx.ID_OK:
         sys.exit(0)
     return result
 

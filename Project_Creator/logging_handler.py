@@ -1,5 +1,6 @@
 import logging
 
+
 def configure_logger(logger, logging_level):
     logger.setLevel(logging_level)
 

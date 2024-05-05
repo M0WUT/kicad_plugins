@@ -1,4 +1,7 @@
 import subprocess
+from pathlib import Path
+
+from .platform import OSType, get_os_type
 
 
 def check_if_github_cli_exists():
@@ -31,6 +34,7 @@ def get_current_github_user() -> str:
     gh_username = response.split("github.com account ")[1].split(" ")[0]
     return gh_username
 
+
 def create_blank_github_repo(repo_name: str):
     try:
         subprocess.check_output(
@@ -39,6 +43,35 @@ def create_blank_github_repo(repo_name: str):
         return True
     except subprocess.CalledProcessError:
         return False
+
+
+def git_checkout(gh_user: str, repo_name: str, checkout_location: Path):
+    subprocess.check_output(
+        [
+            "gh",
+            "repo",
+            "clone",
+            f"{gh_user}/{repo_name}",
+            str(checkout_location.absolute()),
+        ]
+    )
+
+
+def git_push(repo_location: Path, commit_message: str):
+    subprocess.check_output(
+        [
+            "git",
+            "-C",
+            repo_location,
+            "add",
+            ".",
+        ]
+    )
+    subprocess.check_output(
+        ["git", "-C", repo_location, "commit", "-m", commit_message]
+    )
+
+    subprocess.check_output(["git", "-C", repo_location, "push"])
 
 
 def main():

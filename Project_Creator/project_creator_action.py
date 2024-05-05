@@ -10,4 +10,5 @@ class CreatorPluginAction(pcbnew.ActionPlugin):
         self.description = "Generates New project with M0WUT settings applied"
 
     def Run(self):
+        # This must be called Run with a capital R to appease Kicad
         project_creator.run()
