@@ -1,5 +1,7 @@
-from .Project_Creator.project_creator_action import (
-    CreatorPluginAction,
-)  # Note the relative import!
+from .Bowtie_Creator.bowtie_creator_action import BowtiePluginAction
+from .Kicadium_DRC.drc_creator_action import DRCPluginAction
+from .Project_Creator.project_creator_action import CreatorPluginAction
 
-CreatorPluginAction().register()  # Instantiate and register to PCB editor
+CreatorPluginAction().register()
+BowtiePluginAction().register()
+DRCPluginAction().register()

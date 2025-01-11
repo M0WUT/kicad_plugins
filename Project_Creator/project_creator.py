@@ -103,7 +103,6 @@ class ProjectCreator:
             with open(boards_tracker_path / "boards.csv", "r") as boards_file:
 
                 existing_boards = boards_file.readlines()
-                show_info(f"{existing_boards}", "Test")
                 if existing_boards:
                     board_number = 1 + int(existing_boards[-1].split(",")[0])
                 else:
