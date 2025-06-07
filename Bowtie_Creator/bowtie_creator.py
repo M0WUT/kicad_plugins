@@ -81,21 +81,28 @@ class Component:
         self._set_reference_visible_state(False)
 
 
-NUM_COLS = 21
-START_COLUMN_SIZE = 28
+NUM_COLS = 19
+START_COLUMN_SIZE = 26
+
+NUM_CENTRE_COLS = 10
 
 # Coordinates of Start LED (first one on bottom left on left side of bowtie)
-START_X = 93.25
+START_X = 97.75
 CENTRE_LINE_Y = 100
 
-COLUMN_SPACING = 2.25  # mm
-ROW_SPACING = 2.25  # mm
+COLUMN_SPACING = 2.3  # mm
+ROW_SPACING = 2.3  # mm
+
+DEFAULT_TRACK_WIDTH_MM = 0.127
+DEFAULT_POWER_TRACK_WIDTH_MM = 0.5
 
 VIA_DIAMETER = 0.45
 VIA_HOLE = 0.2
 
-LED_PAD_OFFSET_X = 0.515
-LED_PAD_OFFSET_Y = 0.43
+LED_PAD_OFFSET_X = 0.65
+LED_PAD_OFFSET_Y = 0.4
+LED_PAD_TRACK_VERTEX_OFFSET_X = 0.5
+LED_PAD_TRACK_VERTEX_OFFSET_Y = 0.417
 
 
 @dataclass
@@ -240,8 +247,8 @@ def create_bowtie(kicad_pcb: pcbnew.BOARD):
     leds_per_column = START_COLUMN_SIZE
     add_led_next_column = False
 
-    flip = False
-    for col in range(NUM_COLS):
+    flip = True
+    for col in range(2 * NUM_COLS + NUM_CENTRE_COLS):
         led_centre_x = START_X + COLUMN_SPACING * col
         for row in range(leds_per_column):
             led = pcb.get_component(f"LD{current_led_reference}")
@@ -263,7 +270,7 @@ def create_bowtie(kicad_pcb: pcbnew.BOARD):
             )
             led.hide_reference()
 
-            # Bottom left via i.e. negative X, positive Y
+            # Bottom left pad i.e. negative X, positive Y
             # This goes to a via
             x_pos = led_centre_x - LED_PAD_OFFSET_X
             y_pos = led_centre_y + LED_PAD_OFFSET_Y
@@ -274,7 +281,7 @@ def create_bowtie(kicad_pcb: pcbnew.BOARD):
                 led_centre_y + 0.5 * ROW_SPACING,
                 net_5v,
                 KicadLayer.TOP,
-                0.127,
+                DEFAULT_TRACK_WIDTH_MM,
             )
             pcb.add_via(
                 x_pos,
@@ -290,74 +297,98 @@ def create_bowtie(kicad_pcb: pcbnew.BOARD):
                 led_centre_y + 0.5 * ROW_SPACING,
                 net_5v,
                 KicadLayer.L3,
-                0.45,
+                DEFAULT_POWER_TRACK_WIDTH_MM,
             )
 
             if row > 0:
 
-                # Top right via i.e. positive X, negative Y (becauese Kicad)
-                # This goes down and to the left
+                # Top right pad i.e. positive X, negative Y (becauese Kicad)
+                # This goes up and to the left
                 x_pos = led_centre_x + LED_PAD_OFFSET_X
                 y_pos = led_centre_y - LED_PAD_OFFSET_Y
                 pcb.add_multipoint_track(
                     [
                         (x_pos, y_pos),
-                        (x_pos - 0.435, y_pos + 0.435),
                         (
-                            x_pos - 0.435,
-                            y_pos + ROW_SPACING - 0.435,
+                            x_pos - LED_PAD_TRACK_VERTEX_OFFSET_X,
+                            y_pos + LED_PAD_TRACK_VERTEX_OFFSET_Y,
+                        ),
+                        (
+                            x_pos - LED_PAD_TRACK_VERTEX_OFFSET_X,
+                            y_pos + ROW_SPACING - LED_PAD_TRACK_VERTEX_OFFSET_Y,
                         ),
                         (x_pos, y_pos + ROW_SPACING),
                     ],
                     net_5v,
                     KicadLayer.TOP,
-                    0.127,
+                    DEFAULT_TRACK_WIDTH_MM,
                 )
                 # Top left via i.e. negative X, negative Y
-                # This goes down and to the left
+                # This goes up and to the right
                 x_pos = led_centre_x - LED_PAD_OFFSET_X
                 y_pos = led_centre_y - LED_PAD_OFFSET_Y
                 pcb.add_multipoint_track(
                     [
                         (x_pos, y_pos),
-                        (x_pos - 0.435, y_pos + 0.435),
                         (
-                            x_pos - 0.435,
-                            y_pos + ROW_SPACING - 0.435,
+                            x_pos + LED_PAD_TRACK_VERTEX_OFFSET_X,
+                            y_pos + LED_PAD_TRACK_VERTEX_OFFSET_Y,
+                        ),
+                        (
+                            x_pos + LED_PAD_TRACK_VERTEX_OFFSET_X,
+                            y_pos + ROW_SPACING - LED_PAD_TRACK_VERTEX_OFFSET_Y,
                         ),
                         (x_pos, y_pos + ROW_SPACING),
                     ],
                     net_5v,
                     KicadLayer.TOP,
-                    0.127,
+                    DEFAULT_TRACK_WIDTH_MM,
                 )
 
                 # # Bottom right via i.e. positive X, positive Y
-                # # This goes down and right
+                # # This goes up and right
                 x_pos = led_centre_x + LED_PAD_OFFSET_X
                 y_pos = led_centre_y + LED_PAD_OFFSET_Y
                 pcb.add_multipoint_track(
                     [
                         (x_pos, y_pos),
-                        (x_pos + 0.435, y_pos + 0.435),
                         (
-                            x_pos + 0.435,
-                            y_pos + ROW_SPACING - 0.435,
+                            x_pos + LED_PAD_TRACK_VERTEX_OFFSET_X,
+                            y_pos + LED_PAD_TRACK_VERTEX_OFFSET_Y,
+                        ),
+                        (
+                            x_pos + LED_PAD_TRACK_VERTEX_OFFSET_X,
+                            y_pos + ROW_SPACING - LED_PAD_TRACK_VERTEX_OFFSET_Y,
                         ),
                         (x_pos, y_pos + ROW_SPACING),
                     ],
                     net_5v,
                     KicadLayer.TOP,
-                    0.127,
+                    DEFAULT_TRACK_WIDTH_MM,
                 )
 
             current_led_reference += 1
 
-        if add_led_next_column == (2 if flip else 1):
-            leds_per_column -= 2
-            add_led_next_column = 0
-            flip = not flip
+        if col < NUM_COLS:
+            # Taper down
+            if add_led_next_column == (2 if flip else 1):
+                leds_per_column -= 2
+                add_led_next_column = 0
+                flip = not flip
+            else:
+                add_led_next_column = add_led_next_column + 1
+
+        elif col >= NUM_COLS + NUM_CENTRE_COLS:
+            if add_led_next_column == (2 if flip else 1):
+                leds_per_column += 2
+                add_led_next_column = 0
+                flip = not flip
+            else:
+                add_led_next_column = add_led_next_column + 1
+
+            pass
         else:
-            add_led_next_column = add_led_next_column + 1
+            # Centre section
+            pass
 
     pcbnew.Refresh()
