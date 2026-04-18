@@ -1,6 +1,8 @@
+from contextlib import suppress
+
 import pcbnew
 
-from . import project_creator
+from .project_creator import ProjectCreator
 
 
 class CreatorPluginAction(pcbnew.ActionPlugin):
@@ -11,4 +13,5 @@ class CreatorPluginAction(pcbnew.ActionPlugin):
 
     def Run(self):
         # This must be called Run with a capital R to appease Kicad
-        project_creator.run()
+        with suppress(SystemExit):
+            _ = ProjectCreator()

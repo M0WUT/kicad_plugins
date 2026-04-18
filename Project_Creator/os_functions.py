@@ -25,9 +25,7 @@ def get_kicad_path() -> Path:
     if get_os_type() == OSType.Windows:
         # Try local install
         home_directory = Path.home()
-        test_directory = (
-            home_directory / "AppData" / "Local" / "Programs" / "Kicad"
-        )
+        test_directory = home_directory / "AppData" / "Local" / "Programs" / "Kicad"
         if test_directory.is_dir():
             installed_kicad_versions = [x for x in test_directory.iterdir()]
             if len(installed_kicad_versions) != 1:
@@ -52,9 +50,7 @@ def get_temp_path() -> Path:
 
 
 def delete_folder(repo_path: Path) -> None:
-    def overwrite_permissions(
-        func: Callable, path: Path, *args, **kwargs
-    ) -> None:
+    def overwrite_permissions(func: Callable, path: Path, *args, **kwargs) -> None:
         # Need to overwrite permission for the .git folder
         # NB this makes this function quite dangerous
         os.chmod(path, stat.S_IWUSR)

@@ -1,22 +1,31 @@
+from contextlib import suppress
 import logging
 import re
+import csv
 
-from ..utils.github_helper import (
-    check_if_github_cli_exists,
-    check_if_project_exists,
+import wx
+
+from .github_helper import (
+    create_blank_github_repo,
+    github_cli_exists,
+    github_project_exists,
     get_current_github_user,
     git_checkout,
     git_push,
 )
-from ..utils.platform import delete_folder, get_temp_path
-from ..utils.ui import (
+from .os_functions import delete_folder, get_temp_path
+from .ui import (
     get_folder_input,
     get_text_input,
     show_error,
     show_info,
-    show_warning,
 )
-from .config import BOARD_TRACKER_PROJECT_USER, BOARD_TRACKER_REPO
+from .config import (
+    BOARD_TRACKER_PROJECT_USER,
+    BOARD_TRACKER_REPO,
+    PROJECT_NUMBER_TRACKER_REPO_NAME,
+    TEMP_FOLDER_NAME,
+)
 from .logging_handler import configure_logger
 
 
@@ -24,112 +33,156 @@ class ProjectCreator:
     def __init__(self):
         self.logger = logging.getLogger(__name__)
         configure_logger(self.logger, logging.DEBUG)
+        self.validate_github_settings()
+        self.generate_project_number_and_name()
 
-    def ask_project_name(self):
-        self.project_name = None
-        self.repo_name = None
-
-        while self.project_name is None:
-            requested_project_name = get_text_input(
-                message="Please enter requested repo name",
-                title="Enter repo name",
-            )
-
-            requested_repo_name = re.sub(
-                " ", "-", requested_project_name.lower()
-            )
-            if (
-                check_if_project_exists(self.gh_user, requested_repo_name)
-                is False
-            ):
-                # New project name
-                self.project_name = requested_project_name
-                self.repo_name = requested_repo_name
-                self.logger.info(
-                    f'Creating project "{self.project_name}" at'
-                    f"github.com/{self.gh_user}/"
-                    f"{self.repo_name}"
-                )
-            else:
-                show_warning(
-                    f"Repo {self.gh_user}/{requested_repo_name}'"
-                    " already exists",
-                    "Repo already exists",
-                )
-
-    def get_project_info(self):
+    def validate_github_settings(self):
         # Check if Github CLI is present
-        if check_if_github_cli_exists() is False:
+        if github_cli_exists():
+            self.logger.info("Github CLI found")
+        else:
             show_error(
-                "Github CLI not found. Please ensure it is"
-                "installed and authenticated",
+                "Github CLI not found. Please ensure it is installed",
                 "Github CLI not found",
             )
 
         # Query for Github user
         self.gh_user = get_current_github_user()
-        self.logger.info(f"Github user detected as {self.gh_user}")
-
-        # Get an new project name
-        self.ask_project_name()
-
-        # Create blank repo
-        show_info(
-            f"This will create a default Kicad project in the {self.gh_user}/"
-            f"{self.repo_name} repository. Press OK to continue...",
-            title="Here we go!",
-        )
-        # create_blank_github_repo(repo_name)
-        # self.logger.info(f"{gh_user}/{repo_name} created")
-
-        # Select parent folder for checkout
-        self.repo_parent_folder = get_folder_input(
-            "Please select parent directory for checkout",
-            "Select parent folder",
-        )
-
-    def reserve_board_number(self, board_name: str) -> int:
-        try:
-            # Checkout tracker repo
-            boards_tracker_path = get_temp_path() / "M0WUT"
-            boards_tracker_path.mkdir(parents=True)
-            git_checkout(
-                BOARD_TRACKER_PROJECT_USER,
-                BOARD_TRACKER_REPO,
-                boards_tracker_path,
+        if self.gh_user is None:
+            show_error(
+                "Github CLI is not authenticated as a user",
+                "Github CLI not authenticated",
             )
 
-            # Extract previous board number and add new board to the file
-            with open(boards_tracker_path / "boards.csv", "r") as boards_file:
+        self.logger.info(f"Github user detected as {self.gh_user}")
 
-                existing_boards = boards_file.readlines()
-                if existing_boards:
-                    board_number = 1 + int(existing_boards[-1].split(",")[0])
-                else:
-                    board_number = 1
+    def generate_project_number_and_name(self) -> int:
+        temp_checkout_path = None
+        try:
+            # Checkout tracker repo
+            temp_checkout_path = get_temp_path() / TEMP_FOLDER_NAME / "project-tracker"
+            temp_checkout_path.mkdir(parents=True, exist_ok=True)
 
-                self.logger.info(f"Creating board number {board_number}")
+            if github_project_exists(self.gh_user, PROJECT_NUMBER_TRACKER_REPO_NAME):
+                self.logger.info(
+                    f'Using project tracker repo "{self.gh_user}/{PROJECT_NUMBER_TRACKER_REPO_NAME}"'
+                )
+            else:
+                show_error(
+                    f'Project tracker repo "{self.gh_user}/{PROJECT_NUMBER_TRACKER_REPO_NAME}" does not exist',
+                    "Project tracker repo not found",
+                )
 
-            with open(boards_tracker_path / "boards.csv", "a") as boards_file:
-                boards_file.write(f'{board_number},"{board_name}"\n')
+            self.logger.info(
+                f'Checking out project tracker repo to "{temp_checkout_path.absolute()}"'
+            )
+            git_checkout(
+                self.gh_user,
+                PROJECT_NUMBER_TRACKER_REPO_NAME,
+                temp_checkout_path,
+            )
 
-            # Check in the changes
-            git_push(boards_tracker_path, f"Added board number {board_number}")
+            # Extract previous project numbers
+            existing_projects = []
+            existing_project_names = []
+            with suppress(FileNotFoundError):
+                with open(temp_checkout_path / "projects.csv", "r") as projects_file:
+                    project_tracker_reader = csv.reader(
+                        projects_file, quotechar='"', delimiter=","
+                    )
+                    existing_projects = [x for x in project_tracker_reader]
+                existing_project_names = [x[1] for x in existing_projects]
 
-            return board_number
+            if existing_projects:
+                highest_project_number = int(existing_projects[-1][0])
+                if highest_project_number != len(existing_projects):
+                    show_error(
+                        "Highest project number is not the same as the number of projects. Aborting.",
+                        "Unexpected project numbering",
+                    )
+                self.project_number = highest_project_number + 1
+                self.logger.info(
+                    f"{len(existing_projects)} existing projects found. Next available project number is P{self.project_number:04d}"
+                )
+            else:
+                self.project_number = 1
+                self.logger.info(
+                    f"No projects found. Starting with P{self.project_number:04d}"
+                )
+
+            self.get_project_name(existing_project_names)
+            github_sanitised_repo_name = re.sub(" ", "-", self.project_name.lower())
+            self.repo_name = f"p{self.project_number:04d}_{github_sanitised_repo_name}"
+            self.logger.info(f'Using Github repo: "{self.gh_user}/{self.repo_name}"')
+
+            if github_project_exists(self.gh_user, self.repo_name):
+                show_error(
+                    f"Github repo: {self.gh_user}/{self.repo_name} already exists. Aborting",
+                    "Repo already exists",
+                )
+
+            # Create blank repo
+            if create_blank_github_repo(f"{self.gh_user}/{self.repo_name}"):
+                self.logger.info("Repo created successfully")
+            else:
+                show_error("Project repo creation failed", "Repo creation failed")
+
+            # Update the tracker
+            with open(temp_checkout_path / "projects.csv", "a+") as projects_file:
+                projects_file.write(f'{self.project_number},"{self.project_name}"\n')
+
+            git_push(temp_checkout_path, f"Added project number {self.project_number}")
+
+            self.logger.info("Successfully updated project tracker")
 
         finally:
-            delete_folder(boards_tracker_path)
+            if temp_checkout_path is not None:
+                delete_folder(temp_checkout_path)
 
-    def run(self):
-        self.get_project_info()
-        self.project_number = self.reserve_board_number(self.project_name)
+        show_info(
+            f"Successfully created project\nProject number: P{self.project_number:04d}\nProject name: {self.project_name}\nGithub repo: {self.gh_user}/{self.repo_name}",
+            "Project creation complete",
+        )
+
+    def get_project_name(self, existing_project_names: list[str]) -> None:
+        self.project_name = ""
+        while self.project_name == "":
+            requested_project_name = get_text_input(
+                message=(
+                    "Please enter requested project name as it would be written in a document.\n"
+                    'e.g. "Awesome Project" rather than "awesome_project" or "awesome-project".\n'
+                    "It will be correctly formatted later to be compatible with Github and to avoid spaces in folder names."
+                ),
+                title=f"Enter project name for P{self.project_number:04d}",
+            )
+
+            if not re.fullmatch(
+                r"(?=.*[A-Za-z0-9])[A-Za-z0-9 ]+", requested_project_name
+            ):
+                show_error(
+                    "Project name must only contain upper/lower case letters and spaces",
+                    "Invalid name",
+                    exit_on_error=False,
+                )
+                continue
+
+            if requested_project_name in existing_project_names:
+                show_error(
+                    f'Project "{requested_project_name}" already exists',
+                    "Repo already exists",
+                    exit_on_error=False,
+                )
+                continue
+
+            # Project name has been validated - save it
+            self.project_name = requested_project_name
+            self.logger.info(f'Accepted project name "{self.project_name}"')
 
 
 def run():
-    x = ProjectCreator()
-    x.run()
+    _ = ProjectCreator()
 
 
 if __name__ == "__main__":
+    _ = wx.App()
     run()
