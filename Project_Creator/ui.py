@@ -14,7 +14,7 @@ def _show_message(message: str, title: str, style: int) -> None:
     ret = dlg.ShowModal()
     dlg.Destroy()
 
-    if ret != wx.ID_OK:
+    if ret not in [wx.ID_OK, wx.YES]:
         sys.exit(0)
 
 
@@ -32,6 +32,11 @@ def show_error(message: str, title: str, exit_on_error: bool = True):
         sys.exit(0)
 
 
+def confirm_selection(message: str, title: str):
+    # _show_message(message, title, style=wx.YES | wx.NO)
+    pass
+
+
 def get_text_input(message: str = "", title: str = "Text Input") -> str:
     dlg = wx.TextEntryDialog(parent=None, message=message, caption=title)
     ret = dlg.ShowModal()
@@ -42,11 +47,11 @@ def get_text_input(message: str = "", title: str = "Text Input") -> str:
     return result
 
 
-def get_folder_input(message: str = "", title: str = "") -> Path:
+def get_folder_input(message: str = "") -> Path:
     dlg = wx.DirDialog(
         parent=None,
         message=message,
-        name=title,
+        name="",
         style=wx.DD_DEFAULT_STYLE | wx.DD_DIR_MUST_EXIST,
     )
     ret = dlg.ShowModal()

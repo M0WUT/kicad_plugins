@@ -1,5 +1,6 @@
 import subprocess
 from pathlib import Path
+import logging
 
 import wx
 
@@ -7,6 +8,7 @@ from .ui import show_error
 
 
 def run_shell_command(command: list[str]) -> str:
+    print(" ".join(command))
     response = subprocess.run(
         command,
         check=True,
@@ -64,10 +66,10 @@ def create_blank_github_repo(repo_name: str, show_error_window: bool = True) -> 
         return False
 
 
-def git_checkout(
+def git_clone(
     gh_user: str,
     repo_name: str,
-    checkout_location: Path,
+    clone_location: Path,
     show_error_window: bool = True,
 ) -> bool:
     try:
@@ -77,7 +79,7 @@ def git_checkout(
                 "repo",
                 "clone",
                 f"{gh_user}/{repo_name}",
-                f"{checkout_location.absolute()}",
+                f"{clone_location.absolute()}",
             ],
         )
         return True
@@ -85,30 +87,11 @@ def git_checkout(
     except subprocess.CalledProcessError:
         if show_error_window:
             show_error(
-                f'Failed to checkout repo "{gh_user}/{repo_name}" to '
-                f'"{checkout_location.absolute()}"',
-                "Git checkout failed",
+                f'Failed to clone repo "{gh_user}/{repo_name}" to '
+                f'"{clone_location.absolute()}"',
+                "Git clone failed",
             )
         return False
-
-
-def git_push(
-    repo_location: Path,
-    commit_message: str,
-    show_error_window: bool = True,
-):
-    try:
-        run_shell_command(["git", "-C", f"{repo_location}", "add", "."])
-        run_shell_command(
-            ["git", "-C", f"{repo_location}", "commit", "-m", f"{commit_message}"]
-        )
-        run_shell_command(["git", "-C", f"{repo_location}", "push"])
-    except subprocess.CalledProcessError:
-        if show_error_window:
-            show_error(
-                f'Failed to push to repo "{repo_location}"',
-                "Git push failed",
-            )
 
 
 def validate_github_setup() -> str:
