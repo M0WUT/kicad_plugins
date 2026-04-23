@@ -1,17 +1,17 @@
 from contextlib import suppress
 
-import pcbnew
 
-from .project_creator import ProjectCreator
+from .project_creator import create_project
+import pcbnew
 
 
 class CreatorPluginAction(pcbnew.ActionPlugin):
     def defaults(self):
-        self.name = "Kicad Project Creator"
+        self.name = "New Project Creator"
         self.category = "M0WUT Tools"
-        self.description = "Generates New project with M0WUT settings applied"
+        self.description = "Generates new project master repository on Github"
 
-    def Run(self):
+    def Run(self):  # noqa: N802
         # This must be called Run with a capital R to appease Kicad
         with suppress(SystemExit):
-            _ = ProjectCreator()
+            create_project()

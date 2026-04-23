@@ -2,7 +2,6 @@ import os
 import platform
 import shutil
 import stat
-import subprocess
 from enum import Enum, auto
 from pathlib import Path
 from typing import Callable
