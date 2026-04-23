@@ -3,7 +3,7 @@ from pathlib import Path
 import re
 import csv
 from typing import Optional
-
+import sys
 
 from .gh_functions import (
     create_blank_github_repo,
@@ -17,7 +17,7 @@ from .git_functions import (
 )
 from .os_functions import delete_folder, get_temp_path
 from .ui import (
-    confirm_selection,
+    ask_question,
     get_folder_input,
     get_text_input,
     show_error,
@@ -164,11 +164,15 @@ class ProjectHandler:
 
         project_description = self.get_project_description()
 
-        # confirm_selection(
-        #     f'Is it OK to create the Github project "{self.gh_user}/{repo_name}" '
-        #     f'with the description "{project_description}"?',
-        #     "Confirm project details",
-        # )
+        if (
+            ask_question(
+                f'Is it OK to create the Github project "{self.gh_user}/{repo_name}" '
+                f'with the description "{project_description}"?',
+                "Confirm project details",
+            )
+            is False
+        ):
+            sys.exit(0)
 
         self.logger.info(f'Creating blank Github repo "{self.gh_user}/{repo_name}')
         create_blank_github_repo(f"{self.gh_user}/{repo_name}")
@@ -270,7 +274,16 @@ class ProjectHandler:
     def clone_project(
         self, project_number: int, project_name: str, repo_name: str
     ) -> Path:
+
         local_folder = get_folder_input("Select location for local clone of repo")
+        while not local_folder.exists():
+            show_error(
+                f'Requested checkout folder "{local_folder.absolute()}" does not exist',
+                "Folder does not exist",
+                exit_on_error=False,
+            )
+            local_folder = get_folder_input("Select location for local clone of repo")
+
         local_folder = (
             local_folder
             / f"P{project_number:04d}_{project_name.title().replace(' ', '')}"

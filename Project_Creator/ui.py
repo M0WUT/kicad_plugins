@@ -4,7 +4,7 @@ from pathlib import Path
 import wx  # type: ignore
 
 
-def _show_message(message: str, title: str, style: int) -> None:
+def _show_message(message: str, title: str, style: int) -> int:
     dlg = wx.MessageDialog(
         parent=None,
         message=message,
@@ -14,27 +14,29 @@ def _show_message(message: str, title: str, style: int) -> None:
     ret = dlg.ShowModal()
     dlg.Destroy()
 
-    if ret not in [wx.ID_OK, wx.YES]:
+    if ret not in [wx.ID_OK, wx.ID_YES, wx.ID_NO]:
         sys.exit(0)
+    return ret
 
 
-def show_info(message: str, title: str):
-    _show_message(message, title, style=wx.OK | wx.ICON_INFORMATION)
+def show_info(message: str, title: str) -> int:
+    return _show_message(message, title, style=wx.OK | wx.CANCEL | wx.ICON_INFORMATION)
 
 
-def show_warning(message: str, title: str):
-    _show_message(message, title, style=wx.OK | wx.ICON_WARNING)
+def show_warning(message: str, title: str) -> int:
+    return _show_message(message, title, style=wx.OK | wx.CANCEL | wx.ICON_WARNING)
 
 
-def show_error(message: str, title: str, exit_on_error: bool = True):
-    _show_message(message, title, style=wx.OK | wx.ICON_ERROR)
+def show_error(message: str, title: str, exit_on_error: bool = True) -> int:
+    ret = _show_message(message, title, style=wx.OK | wx.ICON_ERROR)
     if exit_on_error:
         sys.exit(0)
+    else:
+        return ret
 
 
-def confirm_selection(message: str, title: str):
-    # _show_message(message, title, style=wx.YES | wx.NO)
-    pass
+def ask_question(message: str, title: str) -> bool:
+    return _show_message(message, title, style=wx.YES | wx.NO) == wx.ID_YES
 
 
 def get_text_input(message: str = "", title: str = "Text Input") -> str:
@@ -66,7 +68,8 @@ def get_folder_input(message: str = "") -> Path:
 
 def main():
     _ = wx.App()
-    get_folder_input()
+    print(show_info("Test", "title"))
+    print(ask_question("Test", "title"))
 
 
 if __name__ == "__main__":
