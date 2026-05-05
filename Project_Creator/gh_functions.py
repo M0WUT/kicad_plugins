@@ -3,7 +3,7 @@ from pathlib import Path
 
 import wx
 
-from ui import show_error
+from .ui import show_error
 
 
 def run_shell_command(command: list[str]) -> str:

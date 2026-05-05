@@ -7,19 +7,19 @@ from typing import Optional
 from git import InvalidGitRepositoryError
 
 
-from project_creator.src.git_functions import (
+from .git_functions import (
     ensure_git_repo_up_to_date,
     get_git_info,
     git_commit_and_push,
 )
-from project_creator.src.gh_functions import (
+from .gh_functions import (
     create_blank_github_repo,
     check_github_project_exists,
     git_clone,
     validate_github_setup,
 )
-from project_creator.src.os_functions import delete_folder, get_temp_dir_path
-from project_creator.ui import (
+from .os_functions import copy_into, delete_folder, get_temp_dir_path
+from .ui import (
     ask_question,
     get_folder_input,
     get_text_input,
@@ -27,11 +27,12 @@ from project_creator.ui import (
     show_info,
     show_warning,
 )
-from project_creator.src.config import (
+from .config import (
     PROJECT_NUMBER_TRACKER_REPO_NAME,
     TEMP_FOLDER_NAME,
+    TEMPLATE_PROJECT_REPO,
 )
-from project_creator.src.logging_handler import configure_logger
+from .logging_handler import configure_logger
 
 
 class KicadProjectHandler:
@@ -48,7 +49,9 @@ class KicadProjectHandler:
         return self
 
     def __exit__(self, *args, **kwargs):
-        pass
+        temp_dir = get_temp_dir_path(create_folder=False)
+        if temp_dir.exists():
+            delete_folder(temp_dir)
 
     def select_local_hardware_folder(self) -> Path:
         local_folder_path = get_folder_input(
@@ -135,7 +138,7 @@ class KicadProjectHandler:
                 [x for x in range(1, 1 + highest_board_number)]
             ):
                 show_error(
-                    f"Board numbering is not a continuous list from project_creator.1-{highest_board_number}. "
+                    f"Board numbering is not a continuous list from .1-{highest_board_number}. "
                     "Aborting.",
                     "Unexpected board numbering",
                 )
@@ -263,6 +266,15 @@ class KicadProjectHandler:
 
         git_commit_and_push(kicad_project_path, "Added README")
         git_commit_and_push(project_path, f"Added board {board_id}")
+
+        template_project_path = get_temp_dir_path() / "kicad-template_project"
+        template_project_path.mkdir()
+        git_clone(self.gh_user, TEMPLATE_PROJECT_REPO, template_project_path)
+
+        # Remove some extra stuff that will have come in with the git clone
+        delete_folder(template_project_path / ".git")
+        (template_project_path / "README.md").unlink()
+        copy_into(template_project_path, kicad_project_path)
 
 
 if __name__ == "__main__":

@@ -6,6 +6,8 @@ from enum import Enum, auto
 from pathlib import Path
 from typing import Callable
 
+from .config import TEMP_FOLDER_NAME
+
 
 class OSType(Enum):
     Windows = auto()
@@ -39,13 +41,16 @@ def get_kicad_path() -> Path:
         raise NotImplementedError
 
 
-def get_temp_dir_path() -> Path:
+def get_temp_dir_path(create_folder: bool = True) -> Path:
     if get_os_type() == OSType.Windows:
-        temp_directory = Path.home() / "AppData" / "Local"
-        return temp_directory
+        temp_directory = Path.home() / "AppData" / "Local" / TEMP_FOLDER_NAME
     else:
         # Unknown OS
         raise NotImplementedError
+
+    if create_folder:
+        temp_directory.mkdir(exist_ok=True, parents=True)
+    return temp_directory
 
 
 def delete_folder(repo_path: Path) -> None:
@@ -56,3 +61,36 @@ def delete_folder(repo_path: Path) -> None:
         func(path)
 
     shutil.rmtree(repo_path, False, overwrite_permissions)
+
+
+def copy_into(src: Path, dst: Path) -> Path:
+    """
+    Recursively copy src directory into dst directory.
+
+    - Fails if any file or directory already exists in dst
+    - No overwrites allowed
+    - No symlinks assumed
+    - OS-agnostic
+    """
+
+    src = Path(src)
+    dst = Path(dst)
+
+    if not src.is_dir():
+        raise ValueError(f"src must be a directory: {src}")
+
+    dst.mkdir(parents=True, exist_ok=True)
+
+    for item in src.iterdir():
+        target = dst / item.name
+
+        if target.exists():
+            raise FileExistsError(f"Target already exists: {target}")
+
+        if item.is_dir():
+            copy_into(item, target)
+        else:
+            target.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(item, target)
+
+    return dst

@@ -2,4 +2,4 @@ PROJECT_NUMBER_TRACKER_REPO_NAME = "project-tracker"
 TEMP_FOLDER_NAME = "M0WUT_tools"
 
 TEMPLATE_PROJECT_USERNAME = "M0WUT"
-TEMPLATE_PROJECT_REPO = "kicad-template-project"
+TEMPLATE_PROJECT_REPO = "p0002_kicad-template-project"

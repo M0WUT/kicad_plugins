@@ -3,9 +3,9 @@ import subprocess
 
 from dataclasses import dataclass
 
-from project_creator.src.file_operations import add_project_readme_header
-from project_creator.src.gh_functions import run_shell_command
-from ui import ask_question, show_error
+from .file_operations import add_project_readme_header
+from .gh_functions import run_shell_command
+from .ui import ask_question, show_error
 
 
 try:
