@@ -39,7 +39,7 @@ def get_kicad_path() -> Path:
         raise NotImplementedError
 
 
-def get_temp_path() -> Path:
+def get_temp_dir_path() -> Path:
     if get_os_type() == OSType.Windows:
         temp_directory = Path.home() / "AppData" / "Local"
         return temp_directory

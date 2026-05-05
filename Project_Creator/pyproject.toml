@@ -1,0 +1,17 @@
+[project]
+name = "project_creator"
+version = "0.0.1"
+authors = [
+  { name="Dan M0WUT", email="m0wutradio@gmail.com" },
+]
+description = "M0WUT Kicad plugins"
+readme = "README.md"
+requires-python = ">=3.12"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Operating System :: OS Independent",
+]
+license = "MIT"
+
+[project.urls]
+Homepage = "https://github.com/M0WUT/kicad_plugins"
