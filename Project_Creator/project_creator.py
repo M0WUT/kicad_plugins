@@ -13,6 +13,7 @@ from git_functions import (
     check_github_repo_exists,
     git_clone_interactive,
     create_blank_github_repo,
+    git_commit_and_push,
 )
 from ui import (
     ask_question,
@@ -45,6 +46,16 @@ class ProjectCreator(Creator):
     @classmethod
     def format_item_number(cls, number: int):
         return f"P{number:04d}"
+
+    def add_project_readme_header(self, readme_path: Path):
+        with open(readme_path, "w+") as readme_file:
+            readme_file.write(f"# P{self.project_number:04d} - {self.project_name}\n")
+            readme_file.write(f"{self.project_description}\n")
+
+    def add_basic_project_readme(self):
+        readme_path = self.local_folder / "README.md"
+        self.add_project_readme_header(readme_path)
+        git_commit_and_push(self.local_folder, "added README")
 
     def create_new_project(self) -> None:
         self.create_new_repo()

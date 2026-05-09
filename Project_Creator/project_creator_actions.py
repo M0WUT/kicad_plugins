@@ -36,4 +36,4 @@ class KicadProjectCreatorPluginAction(pcbnew.ActionPlugin):
         with suppress(SystemExit):
             validate_github_setup()
             with BoardCreator() as kicad_project_handler:
-                kicad_project_handler.create_new_project()
+                kicad_project_handler.create_new_board()

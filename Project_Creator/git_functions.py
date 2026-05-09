@@ -201,6 +201,33 @@ def git_add_explicit_path(
                 )
 
 
+def git_add_submodule(
+    local_folder: Path,
+    submodule_folder: Path,
+    submodule_upstream_url: str,
+    show_error_window: bool = True,
+):
+    try:
+        run_shell_command(
+            [
+                "git",
+                "-C",
+                f"{local_folder}",
+                "submodule",
+                "add",
+                submodule_upstream_url,
+                str(submodule_folder),
+            ]
+        )
+
+    except subprocess.CalledProcessError:
+        if show_error_window:
+            show_error(
+                f'Failed to add submodule "{submodule_upstream_url}" to repo "{local_folder}"',
+                "Git add failed",
+            )
+
+
 def git_pull(local_folder: Path, show_error_window: bool = True):
     try:
         run_shell_command(["git", "-C", f"{local_folder}", "pull"])
@@ -216,6 +243,17 @@ def git_pull_including_submodules(local_folder: Path, show_error_window: bool = 
     try:
         run_shell_command(
             ["git", "-C", f"{local_folder}", "pull", "--recurse-submodules"]
+        )
+        run_shell_command(
+            [
+                "git",
+                "-C",
+                f"{local_folder}",
+                "submodule",
+                "update",
+                "--init",
+                "--recursive",
+            ]
         )
     except subprocess.CalledProcessError:
         if show_error_window:

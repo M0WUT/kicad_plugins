@@ -17,6 +17,7 @@ from git_functions import (
     ensure_git_repo_up_to_date,
     get_git_info,
     git_add_explicit_path,
+    git_add_submodule,
     git_commit_and_push,
     create_blank_github_repo,
     check_github_repo_exists,
@@ -151,23 +152,39 @@ class BoardCreator(Creator):
     def format_item_number(cls, number: int):
         return f"{number:03d}"
 
-    def create_new_project(self):
+    def create_new_board(self):
         self.create_new_repo()
+
         self.board_number = self.number
         self.board_name = self.name
         self.board_description = self.description
 
         self.board_id = f"P{self.project_number:04d}-{self.board_number:03d}"
 
-        kicad_project_path = (
-            self._tracker.local_clone_path
-            / "hardware"
+        temp_path = get_temp_dir_path() / "foo"
+        git_clone(self.project_repo_owner, self.project_repo_name, temp_path)
+        readme_path = temp_path / "README.md"
+        with open(readme_path, "w+") as readme_file:
+            readme_file.write(f"# {self.board_id} - {self.board_name}\n")
+            readme_file.write(f"{self.board_description}\n")
+        git_commit_and_push(temp_path, "added README")
+        delete_folder(temp_path)
+
+        kicad_project_relative_path = (
+            Path("hardware")
             / f"{self.board_id}_{self.board_name.title().replace(' ', '')}"
         )
 
-        git_clone(self.project_repo_owner, self.project_repo_name, kicad_project_path)
+        self.local_folder = self._tracker.local_clone_path / kicad_project_relative_path
 
-        with open(kicad_project_path / "README.md", "w+") as readme_file:
+        # git_clone(self.project_repo_owner, self.project_repo_name, kicad_project_path)
+        git_add_submodule(
+            self._tracker.local_clone_path,
+            kicad_project_relative_path,
+            f"https://github.com/{self.project_repo_owner}/{self.project_repo_name}.git",
+        )
+
+        with open(self.local_folder / "README.md", "w+") as readme_file:
             readme_file.write(f"# {self.board_id} - {self.board_name}")
 
         # These must be this way round as the submodule needs a commit for the
@@ -175,7 +192,7 @@ class BoardCreator(Creator):
 
         # Want to update board tracker as fast as possible, even though we're going to do more to the
         # board folder
-        git_commit_and_push(kicad_project_path, "Added README")
+        git_commit_and_push(self.local_folder, "Added README")
         git_commit_and_push(
             self._tracker.local_clone_path, f"Added board {self.board_id} to tracker"
         )
@@ -195,17 +212,17 @@ class BoardCreator(Creator):
         copy_files_from_git_repo(
             TEMPLATE_PROJECT_REPO_OWNER,
             TEMPLATE_PROJECT_REPO_NAME,
-            kicad_project_path,
+            self.local_folder,
             exclude_paths=[Path("README.md")],
         )
 
         # Rename files
-        for file in kicad_project_path.rglob(f"{TEMPLATE_PROJECT_REPO_NAME}*"):
+        for file in self.local_folder.rglob(f"{TEMPLATE_PROJECT_REPO_NAME}*"):
             file.rename(file.parent / f"{self.board_id}{file.suffix}")
 
         # Replace text content in files
-        for path in kicad_project_path.rglob("*"):
-            if path.is_file():
+        for path in self.local_folder.rglob("*"):
+            if path.is_file() and ".git" not in path.parts:
                 try:
                     text = path.read_text(encoding="utf-8")
                     path.write_text(
@@ -219,11 +236,11 @@ class BoardCreator(Creator):
         copy_files_from_git_repo(
             RELEASER_PROJECT_REPO_OWNER,
             RELEASER_PROJECT_REPO_NAME,
-            kicad_project_path,
+            self.local_folder,
             include_paths=[Path("github")],
         )
-        (kicad_project_path / "github").rename(kicad_project_path / ".github")
-        git_commit_and_push(kicad_project_path, "Added template files")
+        (self.local_folder / "github").rename(self.local_folder / ".github")
+        git_commit_and_push(self.local_folder, "Added template files")
 
         git_commit_and_push(
             self._tracker.local_clone_path,
@@ -231,7 +248,7 @@ class BoardCreator(Creator):
         )
 
         # Finally git pull on the local folder
-        git_pull(self.project_path)
+        git_pull_including_submodules(self.project_path)
 
 
 if __name__ == "__main__":
@@ -239,4 +256,4 @@ if __name__ == "__main__":
 
     _ = wx.App()
     with BoardCreator() as x:
-        x.create_new_project()
+        x.create_new_board()
