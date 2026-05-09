@@ -3,14 +3,14 @@ import logging
 import sys
 from typing import Optional
 
-from .config import PROJECT_NUMBER_TRACKER_REPO_NAME
-from .git_functions import (
+from config import PROJECT_NUMBER_TRACKER_REPO_NAME
+from git_functions import (
     check_github_repo_exists,
     create_blank_github_repo,
 )
-from .logging_handler import configure_logger
-from .repo_tracker import BoardTracker, ProjectTracker, RepoTracker
-from .ui import ask_question, get_text_input, show_error
+from logging_handler import configure_logger
+from repo_tracker import BoardTracker, ProjectTracker, RepoTracker
+from ui import ask_question, get_text_input, show_error
 
 
 @dataclass

@@ -1,9 +1,11 @@
 from pathlib import Path
+import shutil
 import subprocess
 from dataclasses import dataclass
 from typing import Optional
 
-from .ui import ask_question, get_folder_input, show_error
+from os_functions import copy_into, delete_folder, get_temp_dir_path
+from ui import ask_question, get_folder_input, show_error
 
 try:
     from git import Repo
@@ -183,9 +185,38 @@ def git_commit_and_push(
             )
 
 
+def git_add_explicit_path(
+    repo_folder: Path, paths_to_add: list[Path], show_error_window: bool = True
+):
+    for path in paths_to_add:
+        try:
+            run_shell_command(
+                ["git", "-C", f"{repo_folder}", "add", str(path.absolute())]
+            )
+        except subprocess.CalledProcessError:
+            if show_error_window:
+                show_error(
+                    f'Failed to add path "{path.absolute}" to repo "{repo_folder}"',
+                    "Git add failed",
+                )
+
+
 def git_pull(local_folder: Path, show_error_window: bool = True):
     try:
         run_shell_command(["git", "-C", f"{local_folder}", "pull"])
+    except subprocess.CalledProcessError:
+        if show_error_window:
+            show_error(
+                f'Failed to pull changes to repo "{local_folder}"',
+                "Git pull failed",
+            )
+
+
+def git_pull_including_submodules(local_folder: Path, show_error_window: bool = True):
+    try:
+        run_shell_command(
+            ["git", "-C", f"{local_folder}", "pull", "--recurse-submodules"]
+        )
     except subprocess.CalledProcessError:
         if show_error_window:
             show_error(
@@ -198,12 +229,22 @@ def get_git_info(path: Path) -> GitInfo:
     repo = Repo(path)
 
     upstream_url = repo.remotes.origin.url
-    url_split = upstream_url.split("/")
-    github_repo_owner = url_split[-2]
-    github_repo_name = url_split[-1][:-4]
+
+    # URL may either be of the format git@github.com:M0WUT/p0003_wild-bull
+    # or https://github.com/M0WUT/p0003_wild-bull.git
+
+    repo_info = upstream_url.split("github.com")[1]
+
+    repo_owner, repo_name = repo_info.split("/")
+
+    github_repo_owner = repo_owner[1:]
+    if repo_name.endswith(".git"):
+        github_repo_name = repo_name[:-4]
+    else:
+        github_repo_name = repo_name
 
     commit_hash = repo.heads.main.commit.tree.hexsha
-    repo.remote("origin").fetch()
+    # repo.remote("origin").fetch()
 
     local_branch = repo.active_branch.name
     remote_branch = f"origin/{local_branch}"
@@ -279,6 +320,50 @@ def ensure_git_repo_up_to_date(path: Path) -> None:
             )
 
     raise NotImplementedError  # I don't know how we got here
+
+
+def copy_files_from_git_repo(
+    repo_owner: str,
+    repo_name: str,
+    local_dest_path: Path,
+    include_paths: Optional[list[Path]] = None,
+    exclude_paths: Optional[list[Path]] = None,
+):
+    assert not (
+        include_paths is not None and exclude_paths is not None
+    ), "Only one of include and exclude paths can be specified"
+
+    try:
+        temp_clone_path = get_temp_dir_path() / repo_name
+        git_clone(repo_owner, repo_name, temp_clone_path)
+
+        delete_folder(temp_clone_path / ".git")
+
+        if include_paths is not None:
+            for path in include_paths:
+                full_src_path = temp_clone_path / path
+                full_dest_path = local_dest_path / path
+
+                if full_src_path.is_dir():
+                    full_dest_path.mkdir(exist_ok=True, parents=True)
+                    copy_into(full_src_path, full_dest_path)
+                else:
+                    full_dest_path.parent.mkdir(exist_ok=True, parents=True)
+                    shutil.copy(full_src_path, full_dest_path)
+
+        else:
+            if exclude_paths is not None:
+                for path in exclude_paths:
+                    full_path = temp_clone_path / path
+                    if full_path.is_dir():
+                        delete_folder(full_path)
+                    else:
+                        full_path.unlink()
+
+            copy_into(temp_clone_path, local_dest_path)
+
+    finally:
+        delete_folder(temp_clone_path)
 
 
 if __name__ == "__main__":

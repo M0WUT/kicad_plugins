@@ -7,23 +7,27 @@ from typing import Optional
 
 from git import InvalidGitRepositoryError
 
-from .creator import Creator
+from creator import Creator
 
-from .repo_tracker import BoardTracker
+from repo_tracker import BoardTracker
 
 
-from .git_functions import (
+from git_functions import (
+    copy_files_from_git_repo,
     ensure_git_repo_up_to_date,
     get_git_info,
+    git_add_explicit_path,
     git_commit_and_push,
     create_blank_github_repo,
     check_github_repo_exists,
     git_clone,
+    git_pull,
+    git_pull_including_submodules,
     validate_github_setup,
 )
 
-from .os_functions import copy_into, delete_folder, get_temp_dir_path
-from .ui import (
+from os_functions import copy_into, delete_folder, get_temp_dir_path
+from ui import (
     ask_question,
     get_folder_input,
     get_text_input,
@@ -31,12 +35,15 @@ from .ui import (
     show_info,
     show_warning,
 )
-from .config import (
+from config import (
     PROJECT_NUMBER_TRACKER_REPO_NAME,
+    RELEASER_PROJECT_REPO_NAME,
+    RELEASER_PROJECT_REPO_OWNER,
     TEMP_FOLDER_NAME,
-    TEMPLATE_PROJECT_REPO,
+    TEMPLATE_PROJECT_REPO_NAME,
+    TEMPLATE_PROJECT_REPO_OWNER,
 )
-from .logging_handler import configure_logger
+from logging_handler import configure_logger
 
 
 class BoardCreator(Creator):
@@ -136,7 +143,9 @@ class BoardCreator(Creator):
 
     def generate_repo_name(self) -> str:
         github_sanitised_repo_name = re.sub(" ", "-", self.name.lower())
-        return f"p{self.project_number:04d}-{self.number}_{github_sanitised_repo_name}"
+        return (
+            f"p{self.project_number:04d}-{self.number:03d}_{github_sanitised_repo_name}"
+        )
 
     @classmethod
     def format_item_number(cls, number: int):
@@ -150,33 +159,84 @@ class BoardCreator(Creator):
 
         self.board_id = f"P{self.project_number:04d}-{self.board_number:03d}"
 
-        self._tracker.update_tracker_repo(
-            self.board_number, self.board_name, [self.board_id, self.project_repo_name]
+        kicad_project_path = (
+            self._tracker.local_clone_path
+            / "hardware"
+            / f"{self.board_id}_{self.board_name.title().replace(' ', '')}"
         )
 
-        # kicad_project_path = hardware_folder_path / repo_name
+        git_clone(self.project_repo_owner, self.project_repo_name, kicad_project_path)
 
-        # git_clone(self.repo_owner, repo_name, kicad_project_path)
+        with open(kicad_project_path / "README.md", "w+") as readme_file:
+            readme_file.write(f"# {self.board_id} - {self.board_name}")
 
-        # with open(kicad_project_path / "README.md", "w+") as readme_file:
-        #     readme_file.write(f"# {board_id} - {board_name}")
+        # These must be this way round as the submodule needs a commit for the
+        # parent to
 
-        # git_commit_and_push(kicad_project_path, "Added README")
-        # git_commit_and_push(project_path, f"Added board {board_id}")
+        # Want to update board tracker as fast as possible, even though we're going to do more to the
+        # board folder
+        git_commit_and_push(kicad_project_path, "Added README")
+        git_commit_and_push(
+            self._tracker.local_clone_path, f"Added board {self.board_id} to tracker"
+        )
 
-        # template_project_path = get_temp_dir_path() / "kicad-template_project"
-        # template_project_path.mkdir()
-        # git_clone(self.repo_owner, TEMPLATE_PROJECT_REPO, template_project_path)
+        self._tracker.update_tracker_repo(
+            self.board_number,
+            self.board_name,
+            [
+                self.board_description,
+                self.board_id,
+                f"https://github.com/{self.project_repo_owner}/{self.project_repo_name}",
+                f"https://{self.project_repo_owner}.github.io/{self.project_repo_name}",
+            ],
+        )
 
-        # # Remove some extra stuff that will have come in with the git clone
-        # delete_folder(template_project_path / ".git")
-        # (template_project_path / "README.md").unlink()
-        # copy_into(template_project_path, kicad_project_path)
+        # Get template project files
+        copy_files_from_git_repo(
+            TEMPLATE_PROJECT_REPO_OWNER,
+            TEMPLATE_PROJECT_REPO_NAME,
+            kicad_project_path,
+            exclude_paths=[Path("README.md")],
+        )
+
+        # Rename files
+        for file in kicad_project_path.rglob(f"{TEMPLATE_PROJECT_REPO_NAME}*"):
+            file.rename(file.parent / f"{self.board_id}{file.suffix}")
+
+        # Replace text content in files
+        for path in kicad_project_path.rglob("*"):
+            if path.is_file():
+                try:
+                    text = path.read_text(encoding="utf-8")
+                    path.write_text(
+                        text.replace(TEMPLATE_PROJECT_REPO_NAME, self.board_name),
+                        encoding="utf-8",
+                    )
+                except UnicodeDecodeError:
+                    print(f"Not a text file: {path}")
+
+        # Copy Github actions folder
+        copy_files_from_git_repo(
+            RELEASER_PROJECT_REPO_OWNER,
+            RELEASER_PROJECT_REPO_NAME,
+            kicad_project_path,
+            include_paths=[Path("github")],
+        )
+        (kicad_project_path / "github").rename(kicad_project_path / ".github")
+        git_commit_and_push(kicad_project_path, "Added template files")
+
+        git_commit_and_push(
+            self._tracker.local_clone_path,
+            f"Added template board files for {self.board_id}",
+        )
+
+        # Finally git pull on the local folder
+        git_pull(self.project_path)
 
 
 if __name__ == "__main__":
     import wx
 
     _ = wx.App()
-    x = BoardCreator("M0WUT")
-    x.create_new_project()
+    with BoardCreator() as x:
+        x.create_new_project()

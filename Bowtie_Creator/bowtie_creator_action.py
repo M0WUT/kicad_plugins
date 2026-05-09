@@ -1,6 +1,6 @@
 import pcbnew
 
-from .bowtie_creator import create_bowtie
+from bowtie_creator import create_bowtie
 
 
 class BowtiePluginAction(pcbnew.ActionPlugin):

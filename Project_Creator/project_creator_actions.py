@@ -3,10 +3,10 @@ from contextlib import suppress
 
 import pcbnew  # pyright: ignore[reportMissingImports]
 
-from .git_functions import validate_github_setup
-from .project_creator import ProjectCreator
-from .board_creator import BoardCreator
-from .config import PROJECT_NUMBER_TRACKER_REPO_NAME
+from git_functions import validate_github_setup
+from project_creator import ProjectCreator
+from board_creator import BoardCreator
+from config import PROJECT_NUMBER_TRACKER_REPO_NAME
 
 
 class ProjectCreatorPluginAction(pcbnew.ActionPlugin):

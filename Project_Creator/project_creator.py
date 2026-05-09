@@ -5,25 +5,25 @@ import csv
 from typing import Optional
 import sys
 
-from .creator import Creator
+from creator import Creator
 
-from .repo_tracker import ProjectTracker
-from .readme_functions import add_basic_project_readme
-from .git_functions import (
+from repo_tracker import ProjectTracker
+from readme_functions import add_basic_project_readme
+from git_functions import (
     check_github_repo_exists,
     git_clone_interactive,
     create_blank_github_repo,
 )
-from .ui import (
+from ui import (
     ask_question,
     get_text_input,
     show_error,
     show_info,
 )
-from .config import (
+from config import (
     PROJECT_NUMBER_TRACKER_REPO_NAME,
 )
-from .logging_handler import configure_logger
+from logging_handler import configure_logger
 
 
 class ProjectCreator(Creator):

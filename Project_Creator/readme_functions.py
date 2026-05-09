@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from .git_functions import git_commit_and_push
+from git_functions import git_commit_and_push
 
 
 def add_project_readme_header(
