@@ -1,12 +1,9 @@
 from pathlib import Path
 import subprocess
-
 from dataclasses import dataclass
+from typing import Optional
 
-from .file_operations import add_project_readme_header
-from .gh_functions import run_shell_command
-from .ui import ask_question, show_error
-
+from .ui import ask_question, get_folder_input, show_error
 
 try:
     from git import Repo
@@ -16,6 +13,155 @@ except ImportError:
         f"`pip install -r {Path(__file__).parent.absolute()}/requirements.txt`",
         "Modules not installed",
     )
+
+
+@dataclass
+class GitInfo:
+    local_path: Path
+    upstream: str
+    github_repo_owner: str
+    github_repo_name: str
+    commit_hash: str
+    uncommitted_local_changes: bool
+    repos_out_of_sync: bool
+    local_ahead_commit_count: int
+    local_behind_commit_count: int
+
+
+def run_shell_command(command: list[str]) -> str:
+    print(" ".join(command))
+    response = subprocess.run(
+        command,
+        check=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+    ).stdout
+    return response.decode()
+
+
+def github_cli_exists():
+    try:
+        run_shell_command(["gh", "--version"])
+        return True
+    except FileNotFoundError:
+        return False
+
+
+def check_github_repo_exists(
+    repo_owner: str, repo_name: str, show_error_window_if_not_exists: bool = True
+) -> bool:
+    try:
+        run_shell_command(["gh", "repo", "view", f"{repo_owner}/{repo_name}"])
+        return True
+    except subprocess.CalledProcessError:
+        if show_error_window_if_not_exists:
+            show_error(
+                f'Required Github project "{repo_owner}/{repo_name}" does not exist',
+                "Repo not found",
+            )
+        return False
+
+
+def get_current_github_user(show_error_window: bool = True) -> str:
+    try:
+        response = run_shell_command(["gh", "auth", "status"])
+    except subprocess.CalledProcessError:
+        if show_error_window:
+            show_error("GH tool not authorised as a user", "GH not authorised")
+        return ""
+    # response will contain .... github.com account <Github User> ....
+    gh_username = response.split("github.com account ")[1].split(" ")[0]
+    return gh_username
+
+
+def create_blank_github_repo(repo_name: str, show_error_window: bool = True) -> bool:
+    try:
+        run_shell_command(["gh", "repo", "create", "--public", f"{repo_name}"])
+        return True
+    except subprocess.CalledProcessError:
+        if show_error_window:
+            show_error(
+                f'Failed to create repo "{repo_name}" on Github',
+                "Github repo creation failed",
+            )
+        return False
+
+
+def git_clone(
+    repo_owner: str,
+    repo_name: str,
+    clone_location: Path,
+    create_dir: bool = True,
+    check_existence_before_clone: bool = True,
+    show_error_window: bool = True,
+) -> bool:
+
+    if create_dir:
+        clone_location.mkdir(parents=True)
+
+    if check_existence_before_clone:
+        check_github_repo_exists(repo_owner, repo_name)
+
+    try:
+        run_shell_command(
+            [
+                "gh",
+                "repo",
+                "clone",
+                f"{repo_owner}/{repo_name}",
+                f"{clone_location.absolute()}",
+            ],
+        )
+        return True
+
+    except subprocess.CalledProcessError:
+        if show_error_window:
+            show_error(
+                f'Failed to clone repo "{repo_owner}/{repo_name}" to '
+                f'"{clone_location.absolute()}"',
+                "Git clone failed",
+            )
+        return False
+
+
+def git_clone_interactive(
+    repo_owner: str, repo_name: str, local_folder_name: Optional[str] = None
+) -> Path:
+
+    if local_folder_name is None:
+        local_folder_name = repo_name
+
+    parent_folder = get_folder_input("Select location for local clone of repo")
+    while not parent_folder.exists():
+        show_error(
+            f'Requested checkout folder "{parent_folder.absolute()}" does not exist',
+            "Folder does not exist",
+            exit_on_error=False,
+        )
+        parent_folder = get_folder_input("Select location for local clone of repo")
+
+    local_folder = parent_folder / local_folder_name
+    git_clone(repo_owner, repo_name, local_folder)
+    return local_folder
+
+
+def validate_github_setup() -> str:
+    # Check if Github CLI is present
+    if github_cli_exists() is False:
+        show_error(
+            "Github CLI not found. Please ensure it is installed",
+            "Github CLI not found",
+        )
+
+    # Query for Github user
+    gh_user = get_current_github_user()
+    if gh_user is None:
+        show_error(
+            "Github CLI is not authenticated as a user",
+            "Github CLI not authenticated",
+        )
+
+    return gh_user
 
 
 def git_commit_and_push(
@@ -48,33 +194,14 @@ def git_pull(local_folder: Path, show_error_window: bool = True):
             )
 
 
-def add_basic_project_readme(
-    project_number: int,
-    project_name: str,
-    project_description: str,
-    local_folder: Path,
-):
-    readme_path = local_folder / "README.md"
-    add_project_readme_header(
-        readme_path, project_number, project_name, project_description
-    )
-
-    git_commit_and_push(local_folder, "added README")
-
-
-@dataclass
-class GitInfo:
-    local_path: Path
-    upstream: str
-    commit_hash: str
-    uncommitted_local_changes: bool
-    repos_out_of_sync: bool
-    local_ahead_commit_count: int
-    local_behind_commit_count: int
-
-
 def get_git_info(path: Path) -> GitInfo:
     repo = Repo(path)
+
+    upstream_url = repo.remotes.origin.url
+    url_split = upstream_url.split("/")
+    github_repo_owner = url_split[-2]
+    github_repo_name = url_split[-1][:-4]
+
     commit_hash = repo.heads.main.commit.tree.hexsha
     repo.remote("origin").fetch()
 
@@ -98,7 +225,9 @@ def get_git_info(path: Path) -> GitInfo:
 
     return GitInfo(
         local_path=path,
-        upstream=repo.remotes.origin.url,
+        upstream=upstream_url,
+        github_repo_owner=github_repo_owner,
+        github_repo_name=github_repo_name,
         commit_hash=commit_hash,
         uncommitted_local_changes=bool(uncommitted_diffs),
         repos_out_of_sync=bool(latest_remote_commit != latest_local_commit),
@@ -143,5 +272,14 @@ def ensure_git_repo_up_to_date(path: Path) -> None:
             git_pull(path)
             git_info = get_git_info(path)
             assert git_info.repos_out_of_sync is False
+        else:
+            show_error(
+                'Local repo is behind remote. Please run "git pull" and retry',
+                "Un-pulled remote commits",
+            )
 
     raise NotImplementedError  # I don't know how we got here
+
+
+if __name__ == "__main__":
+    print(get_git_info(Path(__file__).parent.parent))

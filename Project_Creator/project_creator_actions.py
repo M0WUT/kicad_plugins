@@ -1,10 +1,12 @@
 from contextlib import suppress
 
+
 import pcbnew  # pyright: ignore[reportMissingImports]
 
-from .gh_functions import validate_github_setup
-from .project_creator import ProjectHandler
-from .kicad_project_creator import KicadProjectHandler
+from .git_functions import validate_github_setup
+from .project_creator import ProjectCreator
+from .board_creator import BoardCreator
+from .config import PROJECT_NUMBER_TRACKER_REPO_NAME
 
 
 class ProjectCreatorPluginAction(pcbnew.ActionPlugin):
@@ -17,8 +19,10 @@ class ProjectCreatorPluginAction(pcbnew.ActionPlugin):
         # This must be called Run with a capital R to appease Kicad
         with suppress(SystemExit):
             gh_user = validate_github_setup()
-            with ProjectHandler(gh_user) as project_handler:
-                project_handler.create_new_project()
+            with ProjectCreator(
+                gh_user, PROJECT_NUMBER_TRACKER_REPO_NAME
+            ) as project_creator:
+                project_creator.create_new_project()
 
 
 class KicadProjectCreatorPluginAction(pcbnew.ActionPlugin):
@@ -30,6 +34,6 @@ class KicadProjectCreatorPluginAction(pcbnew.ActionPlugin):
     def Run(self):  # noqa: N802
         # This must be called Run with a capital R to appease Kicad
         with suppress(SystemExit):
-            gh_user = validate_github_setup()
-            with KicadProjectHandler(gh_user) as kicad_project_handler:
+            validate_github_setup()
+            with BoardCreator() as kicad_project_handler:
                 kicad_project_handler.create_new_project()

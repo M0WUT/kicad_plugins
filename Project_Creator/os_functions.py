@@ -73,9 +73,6 @@ def copy_into(src: Path, dst: Path) -> Path:
     - OS-agnostic
     """
 
-    src = Path(src)
-    dst = Path(dst)
-
     if not src.is_dir():
         raise ValueError(f"src must be a directory: {src}")
 
