@@ -404,5 +404,58 @@ def copy_files_from_git_repo(
         delete_folder(temp_clone_path)
 
 
+def add_github_secret(
+    repo_owner: str,
+    repo_name: str,
+    secret_name: str,
+    secret_value: str,
+    show_error_window: bool = True,
+) -> None:
+    try:
+        run_shell_command(
+            [
+                "gh",
+                "secret",
+                "set",
+                secret_name,
+                "--repo",
+                f"{repo_owner}/{repo_name}",
+                "--body",
+                f'"{secret_value}"',
+            ],
+        )
+    except subprocess.CalledProcessError:
+        if show_error_window:
+            show_error(
+                f'Failed to add secret to repo "{repo_owner}/{repo_name}"',
+                "Adding repo secret failed",
+            )
+
+
+def set_github_pages_source_to_actions(
+    repo_owner: str, repo_name: str, show_error_window: bool = True
+) -> None:
+    try:
+        for method in ["POST", "PUT"]:
+            run_shell_command(
+                [
+                    "gh",
+                    "api",
+                    "--method",
+                    method,
+                    f"/repos/{repo_owner}/{repo_name}/pages",
+                    "-f",
+                    "build_type=workflow",
+                ],
+            )
+
+    except subprocess.CalledProcessError:
+        if show_error_window:
+            show_error(
+                f'Failed to change Github pages source for repo "{repo_owner}/{repo_name}"',
+                "Changing Github pages source failed",
+            )
+
+
 if __name__ == "__main__":
     print(get_git_info(Path(__file__).parent.parent))

@@ -159,6 +159,20 @@ class RepoTracker:
         )
         self.logger.info("Successfully updated tracker")
 
+    def get_item_name_from_number(self, item_number: int):
+        possible_names = [
+            x[self.NAME_FIELD_INDEX]
+            for x in self.get_item_info()
+            if int(x[self.NUMBER_FIELD_INDEX]) == item_number
+        ]
+
+        if len(possible_names) != 1:
+            raise ValueError(
+                f"Could not find item with number {item_number} in {self.get_item_info()}"
+            )
+
+        return possible_names[0]
+
 
 class ProjectTracker(RepoTracker):
     def __init__(self, repo_owner: str, repo_name: str):

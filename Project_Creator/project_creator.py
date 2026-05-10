@@ -69,15 +69,15 @@ class ProjectCreator(Creator):
             self.project_name,
             [
                 self.project_description,
-                f"https://github.com/{self.project_repo_owner}/{self.project_repo_name}",
+                f"https://github.com/{self.board_repo_owner}/{self.board_repo_name}",
             ],
         )
 
         self.logger.info("Cloning project to local machine")
 
         self.local_folder = git_clone_interactive(
-            self.project_repo_owner,
-            self.project_repo_name,
+            self.board_repo_owner,
+            self.board_repo_name,
             f"P{self.project_number:04d}_{self.project_name.title().replace(' ', '')}",
         )
         self.logger.info("Clone successful")
@@ -95,7 +95,7 @@ class ProjectCreator(Creator):
             f"Project number: P{self.project_number:04d}\n"
             f"Project name: {self.project_name}\n"
             f"Description: {self.project_description}\n"
-            f"Github repo: {self.project_repo_owner}/{self.project_repo_name}\n"
+            f"Github repo: {self.board_repo_owner}/{self.board_repo_name}\n"
             f"Local clone: {self.local_folder.absolute()}",
             "Project creation complete",
         )

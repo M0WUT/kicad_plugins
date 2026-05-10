@@ -1,3 +1,4 @@
+import json
 import logging
 from pathlib import Path
 import re
@@ -7,12 +8,14 @@ from typing import Optional
 
 from git import InvalidGitRepositoryError
 
+from repo_secrets import REPO_SECRETS
 from creator import Creator
 
-from repo_tracker import BoardTracker
+from repo_tracker import BoardTracker, ProjectTracker
 
 
 from git_functions import (
+    add_github_secret,
     copy_files_from_git_repo,
     ensure_git_repo_up_to_date,
     get_git_info,
@@ -24,6 +27,7 @@ from git_functions import (
     git_clone,
     git_pull,
     git_pull_including_submodules,
+    set_github_pages_source_to_actions,
     validate_github_setup,
 )
 
@@ -57,8 +61,8 @@ class BoardCreator(Creator):
         self.project_git_info = get_git_info(self.project_path)
 
         self.logger.info(f'Detected repo "{self.project_git_info.upstream}"')
-        self.project_repo_owner = self.project_git_info.github_repo_owner
-        self.project_repo_name = self.project_git_info.github_repo_name
+        self.board_repo_owner = self.project_git_info.github_repo_owner
+        self.board_repo_name = self.project_git_info.github_repo_name
 
         # First 5 characters of repo name should be pxxxx
         # where xxxx is zero-padded project number
@@ -73,10 +77,10 @@ class BoardCreator(Creator):
         self.logger.info(f"Detected project P{self.project_number:04d}")
 
         super().__init__(
-            self.project_repo_owner, self.project_repo_name, "board", self.logger
+            self.board_repo_owner, self.board_repo_name, "board", self.logger
         )
         # The tracker for boards should be in the project repo
-        self._tracker = BoardTracker(self.project_repo_owner, self.project_repo_name)
+        self._tracker = BoardTracker(self.board_repo_owner, self.board_repo_name)
 
     def select_local_hardware_folder(self) -> Path:
         local_folder_path = get_folder_input(
@@ -162,7 +166,7 @@ class BoardCreator(Creator):
         self.board_id = f"P{self.project_number:04d}-{self.board_number:03d}"
 
         temp_path = get_temp_dir_path() / "foo"
-        git_clone(self.project_repo_owner, self.project_repo_name, temp_path)
+        git_clone(self.board_repo_owner, self.board_repo_name, temp_path)
         readme_path = temp_path / "README.md"
         with open(readme_path, "w+") as readme_file:
             readme_file.write(f"# {self.board_id} - {self.board_name}\n")
@@ -181,7 +185,7 @@ class BoardCreator(Creator):
         git_add_submodule(
             self._tracker.local_clone_path,
             kicad_project_relative_path,
-            f"https://github.com/{self.project_repo_owner}/{self.project_repo_name}.git",
+            f"https://github.com/{self.board_repo_owner}/{self.board_repo_name}.git",
         )
 
         with open(self.local_folder / "README.md", "w+") as readme_file:
@@ -203,8 +207,8 @@ class BoardCreator(Creator):
             [
                 self.board_description,
                 self.board_id,
-                f"https://github.com/{self.project_repo_owner}/{self.project_repo_name}",
-                f"https://{self.project_repo_owner}.github.io/{self.project_repo_name}",
+                f"https://github.com/{self.board_repo_owner}/{self.board_repo_name}",
+                f"https://{self.board_repo_owner}.github.io/{self.board_repo_name}",
             ],
         )
 
@@ -240,6 +244,50 @@ class BoardCreator(Creator):
             include_paths=[Path("github")],
         )
         (self.local_folder / "github").rename(self.local_folder / ".github")
+
+        # Copy secrets over
+        for secret_name, secret_value in REPO_SECRETS.items():
+            add_github_secret(
+                self.board_repo_owner, self.board_repo_name, secret_name, secret_value
+            )
+
+        # Enable workflow as Github pages source
+        set_github_pages_source_to_actions(self.board_repo_owner, self.board_repo_name)
+
+        # Replace project text strings
+        kicad_project_file_paths = list(self.local_folder.rglob("*.kicad_pro"))
+        assert len(kicad_project_file_paths) == 1, "Multiple kicad project files found"
+        with open(kicad_project_file_paths[0]) as project_file:
+            project_json = json.load(project_file)
+
+        self._project_tracker = ProjectTracker(
+            self.board_repo_owner, PROJECT_NUMBER_TRACKER_REPO_NAME
+        )
+
+        project_text_variables = {
+            "WUT_BOARD_NAME": self.board_name,
+            "WUT_BOARD_NUMBER": f"{self.board_number:03d}",
+            "WUT_COMPANY": self.board_repo_owner,
+            "WUT_GITHUB_PAGES_URL": f"{self.board_repo_owner.lower()}.github.com/{self.board_repo_name}",
+            "WUT_GITHUB_URL": f"https://github.com/{self.board_repo_owner}/{self.board_repo_name}",
+            "WUT_GIT_COMMIT_DATE": "",
+            "WUT_GIT_COMMIT_TIME": "",
+            "WUT_GIT_COMMIT_TAG": "",
+            "WUT_GIT_VERSION": "",
+            "WUT_LAYOUT_VERSION": "1",
+            "WUT_PROJECT_NAME": self._project_tracker.get_item_name_from_number(
+                self.project_number
+            ),
+            "WUT_PROJECT_NUMBER": f"{self.project_number:04d}",
+            "WUT_RELEASE_STATUS": "DRAFT",
+            "WUT_SCHEMATIC_VERSION": "1",
+        }
+
+        project_json["text_variables"] = project_text_variables
+
+        with open(kicad_project_file_paths[0], "w") as project_file:
+            json.dump(project_json, project_file, indent=2)
+
         git_commit_and_push(self.local_folder, "Added template files")
 
         git_commit_and_push(

@@ -15,8 +15,8 @@ from ui import ask_question, get_text_input, show_error
 
 @dataclass
 class Creator:
-    project_repo_owner: str
-    project_repo_name: str
+    board_repo_owner: str
+    board_repo_name: str
     item_name: str
     logger: logging.Logger
     _tracker: Optional[RepoTracker] = None
@@ -78,31 +78,31 @@ class Creator:
             f"Enter name for {self.item_name.lower()} {self.format_item_number(self.number)}"
         )
 
-        self.project_repo_name = self.generate_repo_name()
+        self.board_repo_name = self.generate_repo_name()
 
         if check_github_repo_exists(
-            self.project_repo_owner,
-            self.project_repo_name,
+            self.board_repo_owner,
+            self.board_repo_name,
             show_error_window_if_not_exists=False,
         ):
             # Given that the project number and name should be unique for this user
             # if we get here, the tracker is not accurately reflecting the created
             # repositories so abort as something has gone wrong somewhere
             show_error(
-                f'Cannot create new Github repo "{self.project_repo_owner}/{self.project_repo_name}. '
+                f'Cannot create new Github repo "{self.board_repo_owner}/{self.board_repo_name}. '
                 "It already exists",
                 "Repo already exists",
             )
 
         self.logger.info(
-            f'Using Github repo: "{self.project_repo_owner}/{self.project_repo_name}"'
+            f'Using Github repo: "{self.board_repo_owner}/{self.board_repo_name}"'
         )
 
         self.description = self.input_item_description()
 
         if (
             ask_question(
-                f'Is it OK to create the Github project "{self.project_repo_owner}/{self.project_repo_name}" '
+                f'Is it OK to create the Github project "{self.board_repo_owner}/{self.board_repo_name}" '
                 f'with the description "{self.description}"?',
                 "Confirm Github project details",
             )
@@ -110,4 +110,4 @@ class Creator:
         ):
             sys.exit(0)
 
-        create_blank_github_repo(f"{self.project_repo_owner}/{self.project_repo_name}")
+        create_blank_github_repo(f"{self.board_repo_owner}/{self.board_repo_name}")
