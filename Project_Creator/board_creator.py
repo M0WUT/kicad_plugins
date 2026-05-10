@@ -1,4 +1,5 @@
 # Standard imports
+from contextlib import suppress
 import json
 import logging
 from pathlib import Path
@@ -17,6 +18,7 @@ from .git_functions import (
     ensure_git_repo_up_to_date,
     get_git_info,
     git_add_submodule,
+    git_checkout,
     git_commit_and_push,
     git_clone,
     git_pull_including_submodules,
@@ -194,14 +196,12 @@ class BoardCreator(Creator):
         # Replace text content in files
         for path in self.local_folder.rglob("*"):
             if path.is_file() and ".git" not in path.parts:
-                try:
+                with suppress(UnicodeDecodeError):
                     text = path.read_text(encoding="utf-8")
                     path.write_text(
                         text.replace(str_to_replace, new_file_stem),
                         encoding="utf-8",
                     )
-                except UnicodeDecodeError:
-                    print(f"Not a text file: {path}")
 
         # Copy Github actions folder
         copy_files_from_git_repo(
@@ -270,6 +270,7 @@ class BoardCreator(Creator):
 
         # Finally git pull on the local folder
         git_pull_including_submodules(self.project_path)
+        git_checkout(self.project_path / kicad_project_relative_path, "main")
 
         show_info(
             f"Successfully created board: {self.board_id}\n"

@@ -8,7 +8,13 @@ from typing import Optional
 # Third party imports
 
 # Local imports
-from .os_functions import copy_into, delete_folder, get_temp_dir_path
+from .os_functions import (
+    OSType,
+    copy_into,
+    delete_folder,
+    get_os_type,
+    get_temp_dir_path,
+)
 from .ui import ask_question, get_folder_input, show_error
 
 # Third party but need to load the show_error method first
@@ -36,13 +42,22 @@ class GitInfo:
 
 
 def run_shell_command(command: list[str]) -> str:
-    print(" ".join(command))
-    response = subprocess.run(
-        command,
-        check=True,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.STDOUT,
-    ).stdout
+    # print(" ".join(command))
+    if get_os_type() == OSType.Windows:
+        response = subprocess.run(
+            command,
+            check=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            creationflags=subprocess.CREATE_NO_WINDOW,
+        ).stdout
+    else:
+        response = subprocess.run(
+            command,
+            check=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+        ).stdout
     return response.decode()
 
 
@@ -232,6 +247,19 @@ def git_add_submodule(
             ]
         )
 
+        run_shell_command(
+            [
+                "git",
+                "-C",
+                f"{local_folder}",
+                "config",
+                "-f",
+                ".gitmodules",
+                f"submodule.{str(submodule_folder)}.branch",
+                "main",
+            ]
+        )
+
     except subprocess.CalledProcessError:
         if show_error_window:
             show_error(
@@ -273,6 +301,18 @@ def git_pull_including_submodules(local_folder: Path, show_error_window: bool = 
             show_error(
                 f'Failed to pull changes to repo "{local_folder}"',
                 "Git pull failed",
+            )
+
+
+def git_checkout(local_folder: Path, branch_name: str, show_error_window: bool = True):
+    try:
+        run_shell_command(["git", "-C", f"{local_folder}", "checkout", branch_name])
+
+    except subprocess.CalledProcessError:
+        if show_error_window:
+            show_error(
+                f'Failed to checkout branch "{branch_name}" in repo "{local_folder}"',
+                "Git checkout failed",
             )
 
 
