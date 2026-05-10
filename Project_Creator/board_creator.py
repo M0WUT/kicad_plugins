@@ -1,54 +1,43 @@
+# Standard imports
 import json
 import logging
 from pathlib import Path
 import re
-import csv
-import sys
-from typing import Optional
 
+# Third party imports
 from git import InvalidGitRepositoryError
 
-from repo_secrets import REPO_SECRETS
-from creator import Creator
-
-from repo_tracker import BoardTracker, ProjectTracker
-
-
-from git_functions import (
+# Local imports
+from .repo_secrets import REPO_SECRETS
+from .creator import Creator
+from .repo_tracker import BoardTracker, ProjectTracker
+from .git_functions import (
     add_github_secret,
     copy_files_from_git_repo,
     ensure_git_repo_up_to_date,
     get_git_info,
-    git_add_explicit_path,
     git_add_submodule,
     git_commit_and_push,
-    create_blank_github_repo,
-    check_github_repo_exists,
     git_clone,
-    git_pull,
     git_pull_including_submodules,
     set_github_pages_source_to_actions,
-    validate_github_setup,
 )
-
-from os_functions import copy_into, delete_folder, get_temp_dir_path
-from ui import (
+from .os_functions import delete_folder, get_temp_dir_path
+from .ui import (
     ask_question,
     get_folder_input,
-    get_text_input,
     show_error,
     show_info,
     show_warning,
 )
-from config import (
+from .config import (
     PROJECT_NUMBER_TRACKER_REPO_NAME,
     RELEASER_PROJECT_REPO_NAME,
     RELEASER_PROJECT_REPO_OWNER,
-    TEMP_FOLDER_NAME,
     TEMPLATE_PROJECT_REPO_NAME,
     TEMPLATE_PROJECT_REPO_OWNER,
 )
-from logging_handler import configure_logger
+from .logging_handler import configure_logger
 
 
 class BoardCreator(Creator):
@@ -112,7 +101,8 @@ class BoardCreator(Creator):
             else:
                 # Project repository does not yet have hardware folder
                 if ask_question(
-                    f'OK to create hardware folder for repo "{git_info.upstream}"?',
+                    "OK to create hardware folder for repo "
+                    f'"{git_info.github_repo_owner}/{git_info.github_repo_name}"?',
                     "Create hardware folder?",
                 ):
                     possible_hardware_folder_path.mkdir(mode=660)
@@ -181,35 +171,10 @@ class BoardCreator(Creator):
 
         self.local_folder = self._tracker.local_clone_path / kicad_project_relative_path
 
-        # git_clone(self.project_repo_owner, self.project_repo_name, kicad_project_path)
         git_add_submodule(
             self._tracker.local_clone_path,
             kicad_project_relative_path,
             f"https://github.com/{self.board_repo_owner}/{self.board_repo_name}.git",
-        )
-
-        with open(self.local_folder / "README.md", "w+") as readme_file:
-            readme_file.write(f"# {self.board_id} - {self.board_name}")
-
-        # These must be this way round as the submodule needs a commit for the
-        # parent to
-
-        # Want to update board tracker as fast as possible, even though we're going to do more to the
-        # board folder
-        git_commit_and_push(self.local_folder, "Added README")
-        git_commit_and_push(
-            self._tracker.local_clone_path, f"Added board {self.board_id} to tracker"
-        )
-
-        self._tracker.update_tracker_repo(
-            self.board_number,
-            self.board_name,
-            [
-                self.board_description,
-                self.board_id,
-                f"https://github.com/{self.board_repo_owner}/{self.board_repo_name}",
-                f"https://{self.board_repo_owner}.github.io/{self.board_repo_name}",
-            ],
         )
 
         # Get template project files
@@ -221,8 +186,10 @@ class BoardCreator(Creator):
         )
 
         # Rename files
-        for file in self.local_folder.rglob(f"{TEMPLATE_PROJECT_REPO_NAME}*"):
-            file.rename(file.parent / f"{self.board_id}{file.suffix}")
+        str_to_replace = TEMPLATE_PROJECT_REPO_NAME
+        new_file_stem = f"{self.board_repo_name}"
+        for file in self.local_folder.rglob(f"{str_to_replace}*"):
+            file.rename(file.parent / f"{new_file_stem}{file.suffix}")
 
         # Replace text content in files
         for path in self.local_folder.rglob("*"):
@@ -230,7 +197,7 @@ class BoardCreator(Creator):
                 try:
                     text = path.read_text(encoding="utf-8")
                     path.write_text(
-                        text.replace(TEMPLATE_PROJECT_REPO_NAME, self.board_name),
+                        text.replace(str_to_replace, new_file_stem),
                         encoding="utf-8",
                     )
                 except UnicodeDecodeError:
@@ -260,28 +227,28 @@ class BoardCreator(Creator):
         with open(kicad_project_file_paths[0]) as project_file:
             project_json = json.load(project_file)
 
-        self._project_tracker = ProjectTracker(
+        with ProjectTracker(
             self.board_repo_owner, PROJECT_NUMBER_TRACKER_REPO_NAME
-        )
+        ) as _project_tracker:
 
-        project_text_variables = {
-            "WUT_BOARD_NAME": self.board_name,
-            "WUT_BOARD_NUMBER": f"{self.board_number:03d}",
-            "WUT_COMPANY": self.board_repo_owner,
-            "WUT_GITHUB_PAGES_URL": f"{self.board_repo_owner.lower()}.github.com/{self.board_repo_name}",
-            "WUT_GITHUB_URL": f"https://github.com/{self.board_repo_owner}/{self.board_repo_name}",
-            "WUT_GIT_COMMIT_DATE": "",
-            "WUT_GIT_COMMIT_TIME": "",
-            "WUT_GIT_COMMIT_TAG": "",
-            "WUT_GIT_VERSION": "",
-            "WUT_LAYOUT_VERSION": "1",
-            "WUT_PROJECT_NAME": self._project_tracker.get_item_name_from_number(
-                self.project_number
-            ),
-            "WUT_PROJECT_NUMBER": f"{self.project_number:04d}",
-            "WUT_RELEASE_STATUS": "DRAFT",
-            "WUT_SCHEMATIC_VERSION": "1",
-        }
+            project_text_variables = {
+                "WUT_BOARD_NAME": self.board_name,
+                "WUT_BOARD_NUMBER": f"{self.board_number:03d}",
+                "WUT_COMPANY": self.board_repo_owner,
+                "WUT_GITHUB_PAGES_URL": f"{self.board_repo_owner.lower()}.github.com/{self.board_repo_name}",  # noqa: E501
+                "WUT_GITHUB_URL": f"https://github.com/{self.board_repo_owner}/{self.board_repo_name}",  # noqa: E501
+                "WUT_GIT_COMMIT_DATE": "",
+                "WUT_GIT_COMMIT_TIME": "",
+                "WUT_GIT_COMMIT_TAG": "",
+                "WUT_GIT_VERSION": "",
+                "WUT_LAYOUT_VERSION": "1",
+                "WUT_PROJECT_NAME": _project_tracker.get_item_name_from_number(
+                    self.project_number
+                ),
+                "WUT_PROJECT_NUMBER": f"{self.project_number:04d}",
+                "WUT_RELEASE_STATUS": "DRAFT",
+                "WUT_SCHEMATIC_VERSION": "1",
+            }
 
         project_json["text_variables"] = project_text_variables
 
@@ -290,13 +257,28 @@ class BoardCreator(Creator):
 
         git_commit_and_push(self.local_folder, "Added template files")
 
-        git_commit_and_push(
-            self._tracker.local_clone_path,
-            f"Added template board files for {self.board_id}",
+        self._tracker.update_tracker_repo(
+            self.board_number,
+            self.board_name,
+            [
+                self.board_description,
+                self.board_id,
+                f"https://github.com/{self.board_repo_owner}/{self.board_repo_name}",
+                f"https://{self.board_repo_owner}.github.io/{self.board_repo_name}",
+            ],
         )
 
         # Finally git pull on the local folder
         git_pull_including_submodules(self.project_path)
+
+        show_info(
+            f"Successfully created board: {self.board_id}\n"
+            f"Board number: P{self.project_number:04d}\n"
+            f"Board name: {self.board_name}\n"
+            f"Description: {self.board_description}\n"
+            f"Github repo: {self.board_repo_owner}/{self.board_repo_name}\n",
+            "Board creation complete",
+        )
 
 
 if __name__ == "__main__":

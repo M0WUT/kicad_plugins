@@ -1,7 +1,11 @@
+# Standard imports
 import sys
 from pathlib import Path
 
+# Third party imports
 import wx  # type: ignore
+
+# Local imports
 
 
 def _show_message(message: str, title: str, style: int) -> int:

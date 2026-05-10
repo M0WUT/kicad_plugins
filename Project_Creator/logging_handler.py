@@ -1,4 +1,9 @@
+# Standard imports
 import logging
+
+# Third party imports
+
+# Local imports
 
 
 def configure_logger(logger: logging.Logger, logging_level: int) -> None:

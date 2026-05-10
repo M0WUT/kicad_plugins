@@ -1,16 +1,18 @@
+# Standard imports
 from dataclasses import dataclass
 import logging
 import sys
 from typing import Optional
 
-from config import PROJECT_NUMBER_TRACKER_REPO_NAME
-from git_functions import (
+# Third party imports
+
+# Local imports
+from .git_functions import (
     check_github_repo_exists,
     create_blank_github_repo,
 )
-from logging_handler import configure_logger
-from repo_tracker import BoardTracker, ProjectTracker, RepoTracker
-from ui import ask_question, get_text_input, show_error
+from .repo_tracker import RepoTracker
+from .ui import ask_question, get_text_input, show_error
 
 
 @dataclass
@@ -52,7 +54,7 @@ class Creator:
             )
             if '"' in description:
                 show_error(
-                    f'{self.item_name.title()} description must not contain speech marks (")',
+                    f'{self.item_name.title()} description must not contain speech marks (")',  # noqa: E501
                     "Invalid description",
                     exit_on_error=False,
                 )
@@ -72,10 +74,12 @@ class Creator:
     def create_new_repo(self):
         self.number = self._tracker.generate_next_item_number()
         self.logger.info(
-            f"Attempting to create {self.item_name.lower()} number {self.format_item_number(self.number)}"
+            f"Attempting to create {self.item_name.lower()} number "
+            f"{self.format_item_number(self.number)}"
         )
         self.name = self.input_item_name(
-            f"Enter name for {self.item_name.lower()} {self.format_item_number(self.number)}"
+            f"Enter name for {self.item_name.lower()} "
+            f"{self.format_item_number(self.number)}"
         )
 
         self.board_repo_name = self.generate_repo_name()
@@ -89,7 +93,8 @@ class Creator:
             # if we get here, the tracker is not accurately reflecting the created
             # repositories so abort as something has gone wrong somewhere
             show_error(
-                f'Cannot create new Github repo "{self.board_repo_owner}/{self.board_repo_name}. '
+                "Cannot create new Github repo "
+                f'"{self.board_repo_owner}/{self.board_repo_name}. '
                 "It already exists",
                 "Repo already exists",
             )
@@ -102,7 +107,8 @@ class Creator:
 
         if (
             ask_question(
-                f'Is it OK to create the Github project "{self.board_repo_owner}/{self.board_repo_name}" '
+                "Is it OK to create the Github project "
+                f'"{self.board_repo_owner}/{self.board_repo_name}" '
                 f'with the description "{self.description}"?',
                 "Confirm Github project details",
             )

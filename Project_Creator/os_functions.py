@@ -1,3 +1,4 @@
+# Standard imports
 import os
 import platform
 import shutil
@@ -6,7 +7,10 @@ from enum import Enum, auto
 from pathlib import Path
 from typing import Callable
 
-from config import TEMP_FOLDER_NAME
+# Third party imports
+
+# Local imports
+from .config import TEMP_FOLDER_NAME
 
 
 class OSType(Enum):

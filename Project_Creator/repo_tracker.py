@@ -1,28 +1,27 @@
+# Standard imports
 import csv
 from pathlib import Path
 import logging
 import re
-import sys
-from typing import Optional
 from dataclasses import dataclass
 
-from config import GITHUB_PAGES_DEPLOYMENT_WORKFLOW_NAME
+# Third party imports
 
-from logging_handler import configure_logger
-from ui import ask_question, get_text_input, show_error
-from os_functions import delete_folder, get_temp_dir_path
-from git_functions import (
-    check_github_repo_exists,
-    create_blank_github_repo,
+# Local imports
+from .config import GITHUB_PAGES_DEPLOYMENT_WORKFLOW_NAME
+from .logging_handler import configure_logger
+from .ui import show_error
+from .os_functions import delete_folder, get_temp_dir_path
+from .git_functions import (
     git_clone,
     git_commit_and_push,
 )
 
 """
-Philosophy is that there is a repo on Github that contains a csv file reponsible for tracking
-child repos. Examples of this maybe:
+Philosophy is that there is a repo on Github that contains a csv file reponsible
+for tracking child repos. Examples of this maybe:
 1) Project tracker repo keeping track of all projects
-2) Boards tracker within a project repo keeping track of all board repos within that project
+2) Boards tracker within a project repo keeps track of all board repos in that project
     (same for software / firmware / docs etc)
 
 Within the folder containing the csv, there is also expected to be a README that should
@@ -60,7 +59,8 @@ class RepoTracker:
     def clone_repo(self) -> None:
         local_clone_path = get_temp_dir_path() / self.repo_name
         self.logger.info(
-            f'Cloning "{self.repo_owner}/{self.repo_name}" to "{local_clone_path.absolute()}"'
+            f'Cloning "{self.repo_owner}/{self.repo_name}" to '
+            f'"{local_clone_path.absolute()}"'
         )
         git_clone(self.repo_owner, self.repo_name, local_clone_path)
         self.local_clone_path: Path = local_clone_path
@@ -69,7 +69,8 @@ class RepoTracker:
         local_tracker_path = self.local_clone_path / self.tracker_path
         if not local_tracker_path.exists():
             self.logger.warning(
-                f'Tracker file not found at "{self.tracker_path.absolute()}". Creating now'
+                f'Tracker file not found at "{self.tracker_path.absolute()}". '
+                "Creating now"
             )
             # Ensure folder structure exists
             local_tracker_path.parent.mkdir(parents=True, exist_ok=True)
@@ -128,7 +129,8 @@ class RepoTracker:
             return False
         if name in self.get_item_names():
             show_error(
-                f"Suggested {self.item_name} name is already in use. Names in use: {self.get_item_names()}",
+                f"Suggested {self.item_name} name is already in use. "
+                f"Names in use: {self.get_item_names()}",
                 "Name already in use",
                 False,
             )
@@ -168,7 +170,8 @@ class RepoTracker:
 
         if len(possible_names) != 1:
             raise ValueError(
-                f"Could not find item with number {item_number} in {self.get_item_info()}"
+                f"Could not find item with number {item_number} "
+                f"in {self.get_item_info()}"
             )
 
         return possible_names[0]
@@ -197,7 +200,7 @@ class BoardTracker(RepoTracker):
         with open(self.local_tracker_path.parent / "README.md", "w+") as readme:
             readme.write(f"# {self.repo_owner} Board tracker (designed by M0WUT)\n")
             readme.write(
-                "| Board number | Board name | Description | Full Board ID | Repo URL | Github Pages URL | Github Pages Deployment Status |\n"
+                "| Board number | Board name | Description | Full Board ID | Repo URL | Github Pages URL | Github Pages Deployment Status |\n"  # noqa: E501
             )
             readme.write("| --- | --- | --- | --- | --- | --- | --- |\n")
             for (
@@ -209,5 +212,5 @@ class BoardTracker(RepoTracker):
                 pages_url,
             ) in self.get_item_info():
                 readme.write(
-                    f"| {number} | {name} | {des} | {board_id} | [Github Repo]({repo_url}) | [Github Pages]({pages_url}) | ![Github Pages deployment]({repo_url}/actions/workflows/{GITHUB_PAGES_DEPLOYMENT_WORKFLOW_NAME}/badge.svg) |\n"
+                    f"| {number} | {name} | {des} | {board_id} | [Github Repo]({repo_url}) | [Github Pages]({pages_url}) | ![Github Pages deployment]({repo_url}/actions/workflows/{GITHUB_PAGES_DEPLOYMENT_WORKFLOW_NAME}/badge.svg) |\n"  # noqa: E501
                 )

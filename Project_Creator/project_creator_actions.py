@@ -1,12 +1,14 @@
+# Standard imports
 from contextlib import suppress
 
-
+# Third party imports
 import pcbnew  # pyright: ignore[reportMissingImports]
 
-from git_functions import validate_github_setup
-from project_creator import ProjectCreator
-from board_creator import BoardCreator
-from config import PROJECT_NUMBER_TRACKER_REPO_NAME
+# Local imports
+from .git_functions import validate_github_setup
+from .project_creator import ProjectCreator
+from .board_creator import BoardCreator
+from .config import PROJECT_NUMBER_TRACKER_REPO_NAME
 
 
 class ProjectCreatorPluginAction(pcbnew.ActionPlugin):
@@ -25,7 +27,7 @@ class ProjectCreatorPluginAction(pcbnew.ActionPlugin):
                 project_creator.create_new_project()
 
 
-class KicadProjectCreatorPluginAction(pcbnew.ActionPlugin):
+class KicadBoardCreatorPluginAction(pcbnew.ActionPlugin):
     def defaults(self):
         self.name = "New Kicad Project Creator"
         self.category = "M0WUT Tools"

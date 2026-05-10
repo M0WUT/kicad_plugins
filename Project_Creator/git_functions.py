@@ -1,12 +1,17 @@
+# Standard imports
 from pathlib import Path
 import shutil
 import subprocess
 from dataclasses import dataclass
 from typing import Optional
 
-from os_functions import copy_into, delete_folder, get_temp_dir_path
-from ui import ask_question, get_folder_input, show_error
+# Third party imports
 
+# Local imports
+from .os_functions import copy_into, delete_folder, get_temp_dir_path
+from .ui import ask_question, get_folder_input, show_error
+
+# Third party but need to load the show_error method first
 try:
     from git import Repo
 except ImportError:
@@ -174,7 +179,14 @@ def git_commit_and_push(
     try:
         run_shell_command(["git", "-C", f"{local_folder}", "add", "."])
         run_shell_command(
-            ["git", "-C", f"{local_folder}", "commit", "-m", f"{commit_message}"]
+            [
+                "git",
+                "-C",
+                f"{local_folder}",
+                "commit",
+                "-m",
+                f"Kicad PLUGIN: {commit_message}",
+            ]
         )
         run_shell_command(["git", "-C", f"{local_folder}", "push"])
     except subprocess.CalledProcessError:
@@ -223,7 +235,8 @@ def git_add_submodule(
     except subprocess.CalledProcessError:
         if show_error_window:
             show_error(
-                f'Failed to add submodule "{submodule_upstream_url}" to repo "{local_folder}"',
+                f'Failed to add submodule "{submodule_upstream_url}" '
+                f'to repo "{local_folder}"',
                 "Git add failed",
             )
 
@@ -272,17 +285,16 @@ def get_git_info(path: Path) -> GitInfo:
     # or https://github.com/M0WUT/p0003_wild-bull.git
 
     repo_info = upstream_url.split("github.com")[1]
+    # Remove first character (either : or /)
+    repo_info = repo_info[1:]
 
-    repo_owner, repo_name = repo_info.split("/")
+    github_repo_owner, github_repo_name = repo_info.split("/")
 
-    github_repo_owner = repo_owner[1:]
-    if repo_name.endswith(".git"):
-        github_repo_name = repo_name[:-4]
-    else:
-        github_repo_name = repo_name
+    if github_repo_name.endswith(".git"):
+        github_repo_name = github_repo_name[:-4]
 
     commit_hash = repo.heads.main.commit.tree.hexsha
-    # repo.remote("origin").fetch()
+    repo.remote("origin").fetch()
 
     local_branch = repo.active_branch.name
     remote_branch = f"origin/{local_branch}"
@@ -339,7 +351,8 @@ def ensure_git_repo_up_to_date(path: Path) -> None:
 
     if git_info.local_ahead_commit_count > 0:
         show_error(
-            'There are local commits that have not been pushed to remote. Please run "git push" and retry',
+            "There are local commits that have not been pushed to remote. "
+            'Please run "git push" and retry',
             "Un-pushed local commits",
         )
 
@@ -452,7 +465,8 @@ def set_github_pages_source_to_actions(
     except subprocess.CalledProcessError:
         if show_error_window:
             show_error(
-                f'Failed to change Github pages source for repo "{repo_owner}/{repo_name}"',
+                "Failed to change Github pages source for repo "
+                f'"{repo_owner}/{repo_name}"',
                 "Changing Github pages source failed",
             )
 

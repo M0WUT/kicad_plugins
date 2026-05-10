@@ -1,30 +1,21 @@
+# Standard imports
 import logging
 from pathlib import Path
 import re
-import csv
-from typing import Optional
-import sys
 
-from creator import Creator
+# Third party imports
 
-from repo_tracker import ProjectTracker
-from readme_functions import add_basic_project_readme
-from git_functions import (
-    check_github_repo_exists,
+# Local imports
+from .creator import Creator
+from .repo_tracker import ProjectTracker
+from .git_functions import (
     git_clone_interactive,
-    create_blank_github_repo,
     git_commit_and_push,
 )
-from ui import (
-    ask_question,
-    get_text_input,
-    show_error,
+from .ui import (
     show_info,
 )
-from config import (
-    PROJECT_NUMBER_TRACKER_REPO_NAME,
-)
-from logging_handler import configure_logger
+from .logging_handler import configure_logger
 
 
 class ProjectCreator(Creator):
@@ -83,12 +74,7 @@ class ProjectCreator(Creator):
         self.logger.info("Clone successful")
 
         self.logger.info("Adding README.md")
-        add_basic_project_readme(
-            self.project_number,
-            self.project_name,
-            self.project_description,
-            self.local_folder,
-        )
+        self.add_basic_project_readme()
 
         show_info(
             "Successfully created project\n"
