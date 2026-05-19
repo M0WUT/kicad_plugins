@@ -1,5 +1,5 @@
-# from .Bowtie_Creator.bowtie_creator_action import BowtiePluginAction
-from .Project_Creator.project_creator_actions import (
+ from Bowtie_Creator.bowtie_creator_action import BowtiePluginAction
+from project_creator.project_creator_actions import (
     ProjectCreatorPluginAction,
     KicadBoardCreatorPluginAction,
     UpdateKicadTemplatesPluginAction,

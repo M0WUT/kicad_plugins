@@ -1,34 +1,51 @@
 # Standard imports
+from contextlib import suppress
 from dataclasses import dataclass
 import logging
+from pathlib import Path
 import sys
-from typing import Optional
+
+from project_creator.logging_handler import configure_logger
 
 # Third party imports
 
 # Local imports
-from .git_functions import (
+from project_creator.git_functions import (
     check_github_repo_exists,
     create_blank_github_repo,
+    get_git_info,
 )
-from .repo_tracker import RepoTracker
-from .ui import ask_question, get_text_input, show_error
+from project_creator.trackers.repo_tracker import RepoTracker
+from project_creator.ui import ask_question, get_text_input, show_error
 
 
-@dataclass
-class Creator:
-    board_repo_owner: str
-    board_repo_name: str
-    item_name: str
-    logger: logging.Logger
-    _tracker: Optional[RepoTracker] = None
+class RepoCreator:
+    def __init__(self, repo_owner: str):
+        self.project_path = None
+        self.repo_owner = repo_owner
+        self.logger = logging.getLogger(__name__)
+        configure_logger(self.logger, logging.INFO)
+        self.tracker: RepoTracker = self.create_tracker()
+        self.item_name = self.tracker.get_item_name()
+
+        # This should have been set when creating tracker
+        assert self.project_path is not None
+        # Copy some stuff to more helpfully named variables
+        self.project_git_info = get_git_info(self.project_path)
+        self.repo_owner = self.project_git_info.repo_owner
+        self.project_repo_name = self.project_git_info.repo_name
+        self.project_number = int(self.project_git_info.repo_name[1:5])
 
     def __enter__(self):
         return self
 
     def __exit__(self, *args, **kwargs):
-        if self._tracker is not None:
-            self._tracker.__exit__()
+        with suppress(AttributeError):
+            if self.tracker is not None:
+                self.tracker.__exit__()
+
+    def create_tracker(self) -> RepoTracker:
+        raise NotImplementedError
 
     def input_item_name(self, title: str):
         while True:
@@ -40,7 +57,7 @@ class Creator:
                 ),
                 title=title,
             )
-            if self._tracker.validate_item_name(name):
+            if self.tracker.validate_item_name(name):
                 # validate_item_name will show error box
                 # detailing what is wrong with the proposed name
                 break
@@ -72,7 +89,7 @@ class Creator:
         raise NotImplementedError
 
     def create_new_repo(self):
-        self.number = self._tracker.generate_next_item_number()
+        self.number = self.tracker.generate_next_item_number()
         self.logger.info(
             f"Attempting to create {self.item_name.lower()} number "
             f"{self.format_item_number(self.number)}"
@@ -82,11 +99,11 @@ class Creator:
             f"{self.format_item_number(self.number)}"
         )
 
-        self.board_repo_name = self.generate_repo_name()
+        self.repo_name = self.generate_repo_name()
 
         if check_github_repo_exists(
-            self.board_repo_owner,
-            self.board_repo_name,
+            self.repo_owner,
+            self.repo_name,
             show_error_window_if_not_exists=False,
         ):
             # Given that the project number and name should be unique for this user
@@ -94,21 +111,19 @@ class Creator:
             # repositories so abort as something has gone wrong somewhere
             show_error(
                 "Cannot create new Github repo "
-                f'"{self.board_repo_owner}/{self.board_repo_name}. '
+                f'"{self.repo_owner}/{self.repo_name}. '
                 "It already exists",
                 "Repo already exists",
             )
 
-        self.logger.info(
-            f'Using Github repo: "{self.board_repo_owner}/{self.board_repo_name}"'
-        )
+        self.logger.info(f'Using Github repo: "{self.repo_owner}/{self.repo_name}"')
 
         self.description = self.input_item_description()
 
         if (
             ask_question(
                 "Is it OK to create the Github project "
-                f'"{self.board_repo_owner}/{self.board_repo_name}" '
+                f'"{self.repo_owner}/{self.repo_name}" '
                 f'with the description "{self.description}"?',
                 "Confirm Github project details",
             )
@@ -116,4 +131,10 @@ class Creator:
         ):
             sys.exit(0)
 
-        create_blank_github_repo(f"{self.board_repo_owner}/{self.board_repo_name}")
+        create_blank_github_repo(f"{self.repo_owner}/{self.repo_name}")
+
+    def add_basic_readme(self):
+        raise NotImplementedError
+
+    def _add_readme_header(self, readme_path: Path):
+        raise NotImplementedError

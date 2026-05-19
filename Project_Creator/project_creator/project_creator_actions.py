@@ -6,18 +6,21 @@ from pathlib import Path
 import pcbnew  # pyright: ignore[reportMissingImports]
 
 # Local imports
-from .os_functions import delete_folder
-from .git_functions import copy_files_from_git_repo, validate_github_setup
-from .project_creator import ProjectCreator
-from .board_creator import BoardCreator
-from .config import (
+from project_creator.os_functions import delete_folder
+from project_creator.git_functions import (
+    copy_files_from_git_repo,
+    validate_github_setup,
+)
+from Project_Creator.creator.project_creator import ProjectCreator
+from Project_Creator.creator.board_creator import BoardCreator
+from config import (
     PROJECT_NUMBER_TRACKER_REPO_NAME,
     RELEASER_PROJECT_REPO_NAME,
     RELEASER_PROJECT_REPO_OWNER,
     TEMPLATE_PROJECT_REPO_NAME,
     TEMPLATE_PROJECT_REPO_OWNER,
 )
-from .ui import show_error, show_info
+from project_creator.ui import show_error, show_info
 
 
 class ProjectCreatorPluginAction(pcbnew.ActionPlugin):
@@ -38,15 +41,15 @@ class ProjectCreatorPluginAction(pcbnew.ActionPlugin):
 
 class KicadBoardCreatorPluginAction(pcbnew.ActionPlugin):
     def defaults(self):
-        self.name = "New Board"
+        self.name = "New PCB"
         self.category = "M0WUT Tools"
         self.description = "Generates new Kicad project repository on Github"
 
     def Run(self):  # noqa: N802
         with suppress(SystemExit):
             validate_github_setup()
-            with BoardCreator() as kicad_project_handler:
-                kicad_project_handler.create_new_board()
+            with BoardCreator() as board_creator:
+                board_creator.create_new_board()
 
 
 class UpdateKicadTemplatesPluginAction(pcbnew.ActionPlugin):

@@ -39,6 +39,10 @@ def show_error(message: str, title: str, exit_on_error: bool = True) -> int:
         return ret
 
 
+def abort():
+    show_error("User aborted", "Aborted")
+
+
 def ask_question(message: str, title: str) -> bool:
     return _show_message(message, title, style=wx.YES | wx.NO) == wx.ID_YES
 

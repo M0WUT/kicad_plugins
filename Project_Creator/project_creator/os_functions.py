@@ -10,7 +10,7 @@ from typing import Callable
 # Third party imports
 
 # Local imports
-from .config import TEMP_FOLDER_NAME
+from config import TEMP_FOLDER_NAME
 
 
 class OSType(Enum):

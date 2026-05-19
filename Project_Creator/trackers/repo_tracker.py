@@ -8,11 +8,11 @@ from dataclasses import dataclass
 # Third party imports
 
 # Local imports
-from .config import GITHUB_PAGES_DEPLOYMENT_WORKFLOW_NAME
-from .logging_handler import configure_logger
-from .ui import show_error
-from .os_functions import delete_folder, get_temp_dir_path
-from .git_functions import (
+from config import GITHUB_PAGES_DEPLOYMENT_WORKFLOW_NAME
+from project_creator.logging_handler import configure_logger
+from project_creator.ui import abort, ask_question, show_error
+from project_creator.os_functions import delete_folder, get_temp_dir_path
+from project_creator.git_functions import (
     git_clone,
     git_commit_and_push,
 )
@@ -33,10 +33,6 @@ be updated to visualise the contents of the csv tracker. The csv is the source o
 class RepoTracker:
     repo_owner: str
     repo_name: str
-    tracker_path: Path
-    item_name: (
-        str  # What to call a singular item when logging e.g. "project", "board" etc
-    )
 
     MAX_NAME_LENGTH = 32
 
@@ -47,13 +43,23 @@ class RepoTracker:
         self.logger: logging.Logger = logging.getLogger(__name__)
         configure_logger(self.logger, logging.DEBUG)
         self.clone_repo()
+        self.tracker_path = self.get_tracker_path()
         self.ensure_tracker_file_exists()
+        self.item_name = self.get_item_name()
 
     def __enter__(self):
         return self
 
     def __exit__(self, *args, **kwargs):
         delete_folder(self.local_clone_path)
+
+    @classmethod
+    def get_tracker_path(cls) -> Path:
+        raise NotImplementedError
+
+    @classmethod
+    def get_item_name(cls) -> str:
+        raise NotImplementedError
 
     def update_tracker_readme(self) -> None:
         raise NotImplementedError
@@ -70,13 +76,15 @@ class RepoTracker:
     def ensure_tracker_file_exists(self) -> None:
         local_tracker_path = self.local_clone_path / self.tracker_path
         if not local_tracker_path.exists():
-            self.logger.warning(
-                f'Tracker file not found at "{self.tracker_path.absolute()}". '
-                "Creating now"
-            )
-            # Ensure folder structure exists
-            local_tracker_path.parent.mkdir(parents=True, exist_ok=True)
-            local_tracker_path.touch()
+            if ask_question(
+                f"OK to create {self.tracker_path.parent.stem} folder in repo "
+                f'"{self.repo_owner}/{self.repo_name}"',
+                f"OK to create {self.item_name} tracker?",
+            ):
+                local_tracker_path.parent.mkdir(parents=True, exist_ok=True)
+                local_tracker_path.touch()
+            else:
+                abort()
         self.local_tracker_path: Path = local_tracker_path
 
     def get_item_info(self) -> list[list[str]]:
@@ -182,44 +190,4 @@ class RepoTracker:
                 f"Could not find item with number {item_number} "
                 f"in {self.get_item_info()}"
             )
-
         return possible_names[0]
-
-
-class ProjectTracker(RepoTracker):
-    def __init__(self, repo_owner: str, repo_name: str):
-        super().__init__(repo_owner, repo_name, Path("projects.csv"), "project")
-
-    def update_tracker_readme(self) -> None:
-        with open(self.local_tracker_path.parent / "README.md", "w+") as readme:
-            readme.write(f"# {self.repo_owner} Project tracker (designed by M0WUT)\n")
-            readme.write("| Project number | Project name | Description | URL |\n")
-            readme.write("| --- | --- | --- | --- |\n")
-            for number, name, des, url in self.get_item_info():
-                readme.write(f"| {number} | {name} | {des} | [Main Repo]({url})\n")
-
-
-class BoardTracker(RepoTracker):
-    def __init__(self, repo_owner: str, repo_name: str):
-        super().__init__(
-            repo_owner, repo_name, Path("hardware") / "boards.csv", "board"
-        )
-
-    def update_tracker_readme(self) -> None:
-        with open(self.local_tracker_path.parent / "README.md", "w+") as readme:
-            readme.write(f"# {self.repo_owner} Board tracker (designed by M0WUT)\n")
-            readme.write(
-                "| Board number | Board name | Description | Full Board ID | Repo URL | Github Pages URL | Github Pages Deployment Status |\n"  # noqa: E501
-            )
-            readme.write("| --- | --- | --- | --- | --- | --- | --- |\n")
-            for (
-                number,
-                name,
-                des,
-                board_id,
-                repo_url,
-                pages_url,
-            ) in self.get_item_info():
-                readme.write(
-                    f"| {number} | {name} | {des} | {board_id} | [Github Repo]({repo_url}) | [Github Pages]({pages_url}) | ![Github Pages deployment]({repo_url}/actions/workflows/{GITHUB_PAGES_DEPLOYMENT_WORKFLOW_NAME}/badge.svg) |\n"  # noqa: E501
-                )

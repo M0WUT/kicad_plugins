@@ -8,14 +8,14 @@ from typing import Optional
 # Third party imports
 
 # Local imports
-from .os_functions import (
+from project_creator.os_functions import (
     OSType,
     copy_into,
     delete_folder,
     get_os_type,
     get_temp_dir_path,
 )
-from .ui import ask_question, get_folder_input, show_error
+from project_creator.ui import ask_question, get_folder_input, show_error
 
 # Third party but need to load the show_error method first
 try:
@@ -32,8 +32,8 @@ except ImportError:
 class GitInfo:
     local_path: Path
     upstream: str
-    github_repo_owner: str
-    github_repo_name: str
+    repo_owner: str
+    repo_name: str
     commit_hash: str
     uncommitted_local_changes: bool
     repos_out_of_sync: bool
@@ -321,17 +321,7 @@ def get_git_info(path: Path) -> GitInfo:
 
     upstream_url = repo.remotes.origin.url
 
-    # URL may either be of the format git@github.com:M0WUT/p0003_wild-bull
-    # or https://github.com/M0WUT/p0003_wild-bull.git
-
-    repo_info = upstream_url.split("github.com")[1]
-    # Remove first character (either : or /)
-    repo_info = repo_info[1:]
-
-    github_repo_owner, github_repo_name = repo_info.split("/")
-
-    if github_repo_name.endswith(".git"):
-        github_repo_name = github_repo_name[:-4]
+    github_repo_owner, github_repo_name = get_repo_owner_name_from_url(upstream_url)
 
     commit_hash = repo.heads.main.commit.tree.hexsha
     repo.remote("origin").fetch()
@@ -357,8 +347,8 @@ def get_git_info(path: Path) -> GitInfo:
     return GitInfo(
         local_path=path,
         upstream=upstream_url,
-        github_repo_owner=github_repo_owner,
-        github_repo_name=github_repo_name,
+        repo_owner=github_repo_owner,
+        repo_name=github_repo_name,
         commit_hash=commit_hash,
         uncommitted_local_changes=bool(uncommitted_diffs),
         repos_out_of_sync=bool(latest_remote_commit != latest_local_commit),
@@ -509,6 +499,30 @@ def set_github_pages_source_to_actions(
                 f'"{repo_owner}/{repo_name}"',
                 "Changing Github pages source failed",
             )
+
+
+def generate_github_repo_url(repo_owner: str, repo_name: str) -> str:
+    return f"https://github.com/{repo_owner.lower()}/{repo_name.lower()}"
+
+
+def generate_github_pages_url(repo_owner: str, repo_name: str) -> str:
+    return f"https://{repo_owner.lower()}.github.io/{repo_name.lower()}"
+
+
+def get_repo_owner_name_from_url(url: str) -> tuple[str, str]:
+    # URL may either be of the format git@github.com:M0WUT/p0003_wild-bull
+    # or https://github.com/M0WUT/p0003_wild-bull.git
+
+    repo_info = url.split("github.com")[1]
+    # Remove first character (either : or /)
+    repo_info = repo_info[1:]
+
+    repo_owner, repo_name = repo_info.split("/")
+
+    if repo_name.endswith(".git"):
+        repo_name = repo_name[:-4]
+
+    return repo_owner, repo_name
 
 
 if __name__ == "__main__":
