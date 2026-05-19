@@ -38,6 +38,8 @@ class RepoTracker:
         str  # What to call a singular item when logging e.g. "project", "board" etc
     )
 
+    MAX_NAME_LENGTH = 32
+
     NUMBER_FIELD_INDEX = 0
     NAME_FIELD_INDEX = 1
 
@@ -124,6 +126,13 @@ class RepoTracker:
             show_error(
                 f"Suggested {self.item_name} name contains invalid characters",
                 "Invalid characters",
+                False,
+            )
+            return False
+        if len(name) > self.MAX_NAME_LENGTH:
+            show_error(
+                f"Names must be a maximum of {self.MAX_NAME_LENGTH} characters",
+                "Name too long",
                 False,
             )
             return False

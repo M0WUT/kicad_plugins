@@ -17,12 +17,12 @@ from .config import (
     TEMPLATE_PROJECT_REPO_NAME,
     TEMPLATE_PROJECT_REPO_OWNER,
 )
-from .ui import get_folder_input, show_error, show_info
+from .ui import show_error, show_info
 
 
 class ProjectCreatorPluginAction(pcbnew.ActionPlugin):
     def defaults(self):
-        self.name = "New Project Creator"
+        self.name = "New Project"
         self.category = "M0WUT Tools"
         self.description = "Generates new project super repository on Github"
 
@@ -38,7 +38,7 @@ class ProjectCreatorPluginAction(pcbnew.ActionPlugin):
 
 class KicadBoardCreatorPluginAction(pcbnew.ActionPlugin):
     def defaults(self):
-        self.name = "New Kicad Project Creator"
+        self.name = "New Board"
         self.category = "M0WUT Tools"
         self.description = "Generates new Kicad project repository on Github"
 
