@@ -14,7 +14,7 @@ from project_creator.creators import SubprojectCreator
 from project_creator.repo_secrets import REPO_SECRETS
 from Project_Creator.creator.creator import RepoCreator
 from project_creator.trackers.repo_tracker import BoardTracker, ProjectTracker
-from project_creator.git_functions import (
+from argonaut.argonaut.misc.git import (
     add_github_secret,
     copy_files_from_git_repo,
     ensure_git_repo_up_to_date,
@@ -28,8 +28,8 @@ from project_creator.git_functions import (
     generate_github_pages_url,
     generate_github_repo_url,
 )
-from project_creator.os_functions import delete_folder, get_temp_dir_path
-from project_creator.ui import (
+from argonaut.argonaut.misc.os import delete_folder, get_temp_dir_path
+from argonaut.argonaut.gui.ui import (
     ask_question,
     get_folder_input,
     show_error,

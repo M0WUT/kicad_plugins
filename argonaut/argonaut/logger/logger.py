@@ -4,9 +4,13 @@ import logging
 # Third party imports
 
 # Local imports
+from argonaut.config.config import DEFAULT_LOGGING_DEBUG_LEVEL
 
 
-def configure_logger(logger: logging.Logger, logging_level: int) -> None:
+def create_default_logger(
+    name: str, logging_level: int = DEFAULT_LOGGING_DEBUG_LEVEL
+) -> logging.Logger:
+    logger = logging.getLogger(name)
     logger.setLevel(logging_level)
 
     # remove default handlers
@@ -22,3 +26,5 @@ def configure_logger(logger: logging.Logger, logging_level: int) -> None:
     console_handle.setFormatter(formatter)
 
     logger.addHandler(console_handle)
+
+    return logger

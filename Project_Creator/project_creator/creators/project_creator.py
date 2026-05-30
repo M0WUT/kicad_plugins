@@ -7,12 +7,12 @@ import re
 # Local imports
 from project_creator.creators.repo_creator import RepoCreator
 from project_creator.trackers.project_tracker import ProjectTracker
-from project_creator.git_functions import (
+from argonaut.argonaut.misc.git import (
     generate_github_repo_url,
     git_clone_interactive,
     git_commit_and_push,
 )
-from project_creator.ui import (
+from argonaut.argonaut.gui.ui import (
     show_info,
 )
 from config import PROJECT_NUMBER_TRACKER_REPO_NAME

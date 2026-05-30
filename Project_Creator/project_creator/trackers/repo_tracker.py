@@ -9,10 +9,10 @@ from dataclasses import dataclass
 
 # Local imports
 from config import GITHUB_PAGES_DEPLOYMENT_WORKFLOW_NAME
-from project_creator.logging_handler import configure_logger
-from project_creator.ui import abort, ask_question, show_error
-from project_creator.os_functions import delete_folder, get_temp_dir_path
-from project_creator.git_functions import (
+from argonaut.argonaut.logger.logger import configure_logger
+from argonaut.argonaut.gui.ui import abort, ask_question, show_error
+from argonaut.argonaut.misc.os import delete_folder, get_temp_dir_path
+from argonaut.argonaut.misc.git import (
     git_clone,
     git_commit_and_push,
 )
@@ -41,7 +41,7 @@ class RepoTracker:
 
     def __post_init__(self):
         self.logger: logging.Logger = logging.getLogger(__name__)
-        configure_logger(self.logger, logging.DEBUG)
+        configure_logger(self.logger)
         self.clone_repo()
         self.tracker_path = self.get_tracker_path()
         self.ensure_tracker_file_exists()

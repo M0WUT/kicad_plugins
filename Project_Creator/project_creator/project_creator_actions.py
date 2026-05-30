@@ -6,8 +6,8 @@ from pathlib import Path
 import pcbnew  # pyright: ignore[reportMissingImports]
 
 # Local imports
-from project_creator.os_functions import delete_folder
-from project_creator.git_functions import (
+from argonaut.argonaut.misc.os import delete_folder
+from argonaut.argonaut.misc.git import (
     copy_files_from_git_repo,
     validate_github_setup,
 )
@@ -20,7 +20,7 @@ from config import (
     TEMPLATE_PROJECT_REPO_NAME,
     TEMPLATE_PROJECT_REPO_OWNER,
 )
-from project_creator.ui import show_error, show_info
+from argonaut.argonaut.gui.ui import show_error, show_info
 
 
 class ProjectCreatorPluginAction(pcbnew.ActionPlugin):

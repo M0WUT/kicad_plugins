@@ -8,14 +8,14 @@ from typing import Optional
 # Third party imports
 
 # Local imports
-from project_creator.os_functions import (
+from argonaut.misc.os import (
     OSType,
     copy_into,
     delete_folder,
     get_os_type,
     get_temp_dir_path,
 )
-from project_creator.ui import ask_question, get_folder_input, show_error
+from argonaut.gui.dialog import ask_question, get_folder_input, show_error
 
 # Third party but need to load the show_error method first
 try:

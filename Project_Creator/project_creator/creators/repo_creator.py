@@ -5,18 +5,18 @@ import logging
 from pathlib import Path
 import sys
 
-from project_creator.logging_handler import configure_logger
+from argonaut.argonaut.logger.logger import configure_logger
 
 # Third party imports
 
 # Local imports
-from project_creator.git_functions import (
+from argonaut.argonaut.misc.git import (
     check_github_repo_exists,
     create_blank_github_repo,
     get_git_info,
 )
 from project_creator.trackers.repo_tracker import RepoTracker
-from project_creator.ui import ask_question, get_text_input, show_error
+from argonaut.argonaut.gui.ui import ask_question, get_text_input, show_error
 
 
 class RepoCreator:

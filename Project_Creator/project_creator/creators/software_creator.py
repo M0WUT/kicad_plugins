@@ -1,6 +1,6 @@
 import re
 
-from project_creator.git_functions import (
+from argonaut.argonaut.misc.git import (
     generate_github_repo_url,
     git_add_submodule,
     git_checkout,
@@ -8,8 +8,8 @@ from project_creator.git_functions import (
     git_commit_and_push,
     git_pull_including_submodules,
 )
-from project_creator.os_functions import delete_folder, get_temp_dir_path
-from project_creator.ui import show_info
+from argonaut.argonaut.misc.os import delete_folder, get_temp_dir_path
+from argonaut.argonaut.gui.ui import show_info
 from project_creator.creators.repo_creator import RepoCreator
 from project_creator.trackers.software_tracker import SoftwareTracker
 from project_creator.trackers.repo_tracker import RepoTracker
