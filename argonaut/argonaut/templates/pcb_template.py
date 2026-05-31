@@ -21,6 +21,7 @@ from argonaut.config.config import (
     KICAD_TEMPLATE_REPO_NAME,
     KICAD_RELEASER_REPO_OWNER,
     KICAD_RELEASER_REPO_NAME,
+    KICAD_TEMPLATE_STR_TO_REPLACE,
     PROJECT_TRACKER_JSON_PATH,
     PROJECT_TRACKER_REPO_NAME,
     PROJECT_TRACKER_REPO_OWNER,
@@ -53,7 +54,7 @@ def init_pcb_folder(
     )
 
     # Rename files
-    str_to_replace = KICAD_TEMPLATE_REPO_NAME
+    str_to_replace = KICAD_TEMPLATE_STR_TO_REPLACE
     new_file_stem = document_reference
     for file in local_path.rglob(f"{str_to_replace}*"):
         file.rename(file.parent / f"{new_file_stem}{file.suffix}")
