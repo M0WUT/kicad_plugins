@@ -5,7 +5,8 @@ from pathlib import Path
 
 # Local imports
 from argonaut.config.document_type import DocumentType
-from argonaut.templates.requirements_template import deploy_requirements_template
+from argonaut.templates.requirements_template import init_requirements_folder
+from argonaut.templates.pcb_template import init_pcb_folder
 
 SUPPORTED_DOCUMENT_TYPES = sorted(
     [
@@ -14,9 +15,15 @@ SUPPORTED_DOCUMENT_TYPES = sorted(
             "Requirements Specification",
             Path("requirements"),
             separate_repo=False,
-            template_function=deploy_requirements_template,
+            init_function=init_requirements_folder,
         ),
-        # DocumentType("PCB", "KiCad PCB Project", Path("pcb"), separate_repo=True),
+        DocumentType(
+            "PCB",
+            "KiCad PCB Project",
+            Path("pcb"),
+            separate_repo=True,
+            init_function=init_pcb_folder,
+        ),
         # DocumentType("SW", "Software Project", Path("software"), separate_repo=True),
         # DocumentType("FW", "Firmware Project", Path("firmware"), separate_repo=True),
         # DocumentType("RTL", "RTL Project", Path("rtl"), separate_repo=True),

@@ -6,9 +6,6 @@ import json
 # Local imports
 from argonaut.misc.git import git_commit_and_push
 from argonaut.tracker.tracker import Tracker
-from argonaut.config.config import (
-    PROJECT_TRACKER_JSON_PATH,
-)
 
 
 class ProjectTracker(Tracker):
@@ -52,5 +49,8 @@ class ProjectTracker(Tracker):
             readme.write("| --- | --- | --- | --- |\n")
             for ref, items in self.project_json.items():
                 readme.write(
-                    f"| {ref} | {items['name']} | {items['description']} | [Main Repo]({items['url']})\n"
+                    f"| {ref} | {items['name']} | {items['description']} | [Main Repo]({items['url']})\n"  # noqa: E501
                 )
+
+    def get_name_from_reference(self, reference: str) -> str:
+        return self.project_json[reference]["name"]

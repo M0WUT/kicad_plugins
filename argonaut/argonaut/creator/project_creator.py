@@ -6,6 +6,7 @@ import json
 # Third party imports
 
 # Local imports
+from argonaut.templates.pcb_template import create_pcb_readme_table
 from argonaut.config.supported_document_types import SUPPORTED_DOCUMENT_TYPES
 from argonaut.gui.dialog import show_info
 from argonaut.misc.git import (
@@ -113,19 +114,20 @@ def regenerate_project_readme(local_project_root: Path):
         readme_file.write(f"{info['description']}\n")
 
         for doc_type in SUPPORTED_DOCUMENT_TYPES:
+
             try:
                 pass
                 docs = info["documents"][doc_type.abbreviation.lower()]
-                readme_file.write(f"## {doc_type.description}\n")
-                readme_file.write("| Reference | Name | Description | URL |\n")
-                readme_file.write("| --- | --- | --- | --- |\n")
-                for doc_reference, doc in docs.items():
-                    readme_file.write(
-                        f"| {doc_reference} | {doc['name']} | {doc['description']} | {doc['url']} |\n"
-                    )
-
-                # if any([docs["github_pages_url"]]):
-                #     pass
-
+                readme_file.write(f"## {doc_type.description}s\n")
+                if doc_type.abbreviation == "PCB":
+                    create_pcb_readme_table(readme_file, docs)
+                else:
+                    # Generic handler
+                    readme_file.write("| Reference | Name | Description | URL |\n")
+                    readme_file.write("| --- | --- | --- | --- |\n")
+                    for doc_reference, doc in docs.items():
+                        readme_file.write(
+                            f"| {doc_reference} | {doc['name']} | {doc['description']} | {doc['url']} |\n"  # noqa: E501
+                        )
             except KeyError:
                 pass

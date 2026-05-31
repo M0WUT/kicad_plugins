@@ -9,7 +9,7 @@ from argonaut.config.document_type import DocumentType
 from argonaut.creator.creator import generate_folder_name
 
 
-def deploy_requirements_template(
+def init_requirements_folder(
     local_path: Path,
     project_repo_owner: str,
     project_repo_name: str,
@@ -19,7 +19,6 @@ def deploy_requirements_template(
     document_description: str,
 ) -> dict[str, str]:
 
-    local_path.mkdir(parents=True, exist_ok=True)
     with open(local_path / f"{document_reference}.md", "w+") as file:
         file.write(f"{document_description}\n")
 
@@ -31,5 +30,5 @@ def deploy_requirements_template(
     return {
         "name": document_name,
         "description": document_description,
-        "url": f"{generate_github_repo_url(project_repo_owner, project_repo_name)}/blob/main/{document_type.relative_path}/{generate_folder_name(document_reference, document_name)}/{document_reference}.md",
+        "url": f"{generate_github_repo_url(project_repo_owner, project_repo_name)}/blob/main/{document_type.relative_path}/{generate_folder_name(document_reference, document_name)}/{document_reference}.md",  # noqa: E501
     }

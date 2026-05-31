@@ -1,7 +1,6 @@
 # Standard imports
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Optional
 import json
 
 # Third party imports
