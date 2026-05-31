@@ -35,15 +35,6 @@ class ProjectCreator(RepoCreator):
         github_sanitised_repo_name = re.sub(" ", "-", self.name.lower())
         return f"p{self.number:04d}_{github_sanitised_repo_name}"
 
-    def add_basic_readme(self):
-        readme_path = self.local_folder / "README.md"
-        self._add_readme_header(readme_path)
-
-    def _add_readme_header(self, readme_path: Path):
-        with open(readme_path, "w+") as readme_file:
-            readme_file.write(f"# P{self.project_number:04d} - {self.project_name}\n")
-            readme_file.write(f"{self.project_description}\n")
-
     def create_new_project(self) -> None:
         assert self.tracker is not None
         self.create_new_repo()

@@ -11,8 +11,9 @@ from argonaut.config.config import DELETE_TEMP_FOLDER_ON_STARTUP
 
 
 def main():
-    if DELETE_TEMP_FOLDER_ON_STARTUP:
-        delete_folder(get_temp_dir_path(create_folder=False))
+    temp_dir_path = get_temp_dir_path(create_folder=False)
+    if DELETE_TEMP_FOLDER_ON_STARTUP and temp_dir_path.exists():
+        delete_folder(temp_dir_path)
     gh_user = validate_github_setup()
 
     app = wx.App(False)

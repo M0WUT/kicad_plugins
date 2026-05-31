@@ -7,26 +7,25 @@ import json
 # Third party imports
 
 # Local imports
-from argonaut.gui.dialog import ask_question, show_error
-from argonaut.config.document_type import DocumentType
-from argonaut.misc.git import git_clone
+from argonaut.gui.dialog import show_error
 from argonaut.misc.os import delete_folder, get_temp_dir_path
 from argonaut.logger.logger import create_default_logger
-from argonaut.config.config import PROJECT_JSON_PATH
+from argonaut.misc.git import git_clone
 
 
 @dataclass
-class DocumentTracker:
+class Tracker:
     project_repo_owner: str
     project_repo_name: str
+    relative_json_path: Path
 
     def __post_init__(self):
         self.logger = create_default_logger(__name__)
-        self.local_clone_path: Optional[Path] = None
 
     def __enter__(self):
         self.local_clone_path = self.clone_project_repo()
         self.project_json = self.load_project_json()
+        return self
 
     def __exit__(self, *args, **kwargs):
         if self.local_clone_path is not None:
@@ -43,18 +42,27 @@ class DocumentTracker:
         return local_clone_path
 
     def load_project_json(self) -> dict:
+        assert self.local_clone_path is not None
+        assert self.relative_json_path is not None
         try:
-            json_path = self.local_clone_path / PROJECT_JSON_PATH
-            with open(json_path, "r") as json_file:
+            self.absolute_json_path = self.local_clone_path / self.relative_json_path
+            with open(self.absolute_json_path, "r") as json_file:
                 project_json = json.load(json_file)
         except FileNotFoundError:
             show_error(
-                f"Project tracking file ({self.project_repo_owner}/{self.project_repo_name}/{PROJECT_JSON_PATH}) not found",
+                f"Project tracking file ({self.project_repo_owner}/"
+                f"{self.project_repo_name}/{self.relative_json_path}) not found",
                 "File not found",
             )
 
-        self.logger.debug(project_json)
+        self.logger.debug(f"Loaded project information: {project_json}")
         return project_json
 
-    def generate_next_document_number(self, document_type: DocumentType) -> int:
-        pass
+    def validate_item_numbers(self, item_numbers: list[int]) -> None:
+        highest_item_number = item_numbers[-1]
+        if item_numbers != list(range(1, highest_item_number + 1)):
+            show_error(
+                f"Item numbering is not a continuous list for 1-{highest_item_number}. "
+                "Aborting.",
+                f"Unexpected {self} numbering",
+            )

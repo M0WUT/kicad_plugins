@@ -6,6 +6,7 @@ import sys
 import wx
 
 # Local imports
+from argonaut.creator.project_creator import ProjectCreator
 from argonaut.creator.document_creator import DocumentCreator
 from argonaut.logger.logger import create_default_logger
 
@@ -58,7 +59,8 @@ class MainFrame(wx.Frame):
 
     def create_new_project(self, event):
         self.logger.info("Requested new project creation")
-        # TODO: Add Button 1 logic here
+        with ProjectCreator(self) as x:
+            x.run()
 
     def create_new_document(self, event):
         self.logger.info("Requested new document creation")

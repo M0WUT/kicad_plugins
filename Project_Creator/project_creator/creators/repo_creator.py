@@ -16,7 +16,7 @@ from argonaut.argonaut.misc.git import (
     get_git_info,
 )
 from project_creator.trackers.repo_tracker import RepoTracker
-from argonaut.argonaut.gui.ui import ask_question, get_text_input, show_error
+from argonaut.gui.ui import ask_question, get_text_input, show_error
 
 
 class RepoCreator:
@@ -46,40 +46,6 @@ class RepoCreator:
 
     def create_tracker(self) -> RepoTracker:
         raise NotImplementedError
-
-    def input_item_name(self, title: str):
-        while True:
-            name = get_text_input(
-                message=(
-                    f"Please enter requested {self.item_name.lower()} name as it would be written in a document.\n"  # noqa:E501
-                    f'e.g. "Awesome {self.item_name.title()}" rather than "awesome_{self.item_name.lower()}" or "awesome-{self.item_name.lower()}".\n'  # noqa:E501
-                    "It will be correctly formatted later to be compatible with Github and to avoid spaces in folder names."  # noqa:E501
-                ),
-                title=title,
-            )
-            if self.tracker.validate_item_name(name):
-                # validate_item_name will show error box
-                # detailing what is wrong with the proposed name
-                break
-        return name
-
-    def input_item_description(self) -> str:
-        while True:
-            description = get_text_input(
-                f"Please enter {self.item_name.lower()} description",
-                f"Enter {self.item_name.lower()} description",
-            )
-            if '"' in description:
-                show_error(
-                    f'{self.item_name.title()} description must not contain speech marks (")',  # noqa: E501
-                    "Invalid description",
-                    exit_on_error=False,
-                )
-                continue
-            else:
-                break
-        self.logger.info(f'Accepted description of "{description}"')
-        return description
 
     @classmethod
     def format_item_number(cls, number: int):

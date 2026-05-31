@@ -34,7 +34,7 @@ class RepoTracker:
     repo_owner: str
     repo_name: str
 
-    MAX_NAME_LENGTH = 32
+    
 
     NUMBER_FIELD_INDEX = 0
     NAME_FIELD_INDEX = 1
@@ -94,65 +94,12 @@ class RepoTracker:
         self.logger.info(f"Loaded info of {len(existing_items)} {self.item_name}s")
         return existing_items
 
-    def generate_next_item_number(self) -> int:
-        """
-        Tracker is expected to contain a unique serial number
-        in the first column. This will return the serial number
-        for an item that is about to be created
-        """
-        existing_item_numbers = [
-            int(x[self.NUMBER_FIELD_INDEX]) for x in self.get_item_info()
-        ]
-        if existing_item_numbers == []:
-            next_item_number = 1  # One indexing
-        else:
 
-            self.validate_item_numbers(existing_item_numbers)
-            next_item_number = existing_item_numbers[-1] + 1
 
-        self.logger.info(f"Next available number is {next_item_number}")
-
-        return next_item_number
-
-    def validate_item_numbers(self, item_numbers: list[int]) -> None:
-        highest_item_number = item_numbers[-1]
-        if item_numbers != [x for x in range(1, highest_item_number + 1)]:
-            show_error(
-                f"Item numbering is not a continuous list for 1-{highest_item_number}. "
-                "Aborting.",
-                f"Unexpected {self.item_name} numbering",
-            )
-
-    def get_item_names(self) -> list[str]:
-        return [x[self.NAME_FIELD_INDEX] for x in self.get_item_info()]
-
-    def validate_str(self, x: str) -> bool:
-        return bool(re.fullmatch(r"(?=.*[A-Za-z0-9])[A-Za-z0-9 ]+", x))
+    
 
     def validate_item_name(self, name: str) -> bool:
-        if not self.validate_str(name):
-            show_error(
-                f"Suggested {self.item_name} name contains invalid characters",
-                "Invalid characters",
-                False,
-            )
-            return False
-        if len(name) > self.MAX_NAME_LENGTH:
-            show_error(
-                f"Names must be a maximum of {self.MAX_NAME_LENGTH} characters",
-                "Name too long",
-                False,
-            )
-            return False
-        if name in self.get_item_names():
-            show_error(
-                f"Suggested {self.item_name} name is already in use. "
-                f"Names in use: {self.get_item_names()}",
-                "Name already in use",
-                False,
-            )
-            return False
-        return True
+        
 
     def update_tracker_file(
         self, new_item_number: int, new_item_name: str, other_fields: list[str]
