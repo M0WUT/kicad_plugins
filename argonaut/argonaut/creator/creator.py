@@ -136,3 +136,7 @@ class Creator:
             sys.exit(0)
 
         create_blank_github_repo(f"{self.repo_owner}/{self.repo_name}")
+
+
+def generate_folder_name(document_reference: str, document_name: str) -> str:
+    return f"{document_reference}_{re.sub(' ', '', document_name.title())}"

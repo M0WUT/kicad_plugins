@@ -7,14 +7,13 @@ import json
 from argonaut.misc.git import git_commit_and_push
 from argonaut.tracker.tracker import Tracker
 from argonaut.config.config import (
-    PROJECT_TRACKER_REPO_NAME,
-    PROJECT_TRACKER_REPO_OWNER,
     PROJECT_TRACKER_JSON_PATH,
 )
 
 
 class ProjectTracker(Tracker):
-    def generate_next_project_number(self) -> int:
+
+    def generate_next_number(self) -> int:
         assert (
             self.project_json is not None
         ), "Project JSON must be loaded before searching"
@@ -38,10 +37,9 @@ class ProjectTracker(Tracker):
             "name": name,
             "description": description,
             "url": url,
-            "documents": {},
         }
         with open(self.absolute_json_path, "w") as file:
-            json.dump(self.project_json, file)
+            json.dump(self.project_json, file, indent=4)
 
         self.regenerate_readme()
 

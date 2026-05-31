@@ -167,7 +167,7 @@ class BoardCreator(SubprojectCreator):
         project_json["text_variables"] = project_text_variables
 
         with open(kicad_project_file_paths[0], "w") as project_file:
-            json.dump(project_json, project_file, indent=2)
+            json.dump(project_json, project_file, indent=4)
 
         git_commit_and_push(self.local_folder, "Added template files")
 
